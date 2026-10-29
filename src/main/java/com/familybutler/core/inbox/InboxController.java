@@ -3,6 +3,7 @@ package com.familybutler.core.inbox;
 import com.familybutler.core.account.ApiException;
 import com.familybutler.core.account.AccountService;
 import com.familybutler.core.account.CurrentUser;
+import com.familybutler.core.memory.MemoryService;
 import com.familybutler.core.voice.AsrClient;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,9 +34,10 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 统一收件箱入口（D4 落地）：文本/语音都先落 inbox_event，家庭与成员从登录态反查。
+ * 统一收件箱入口（D4 落地，W3 补解析分发）：文本/语音都先落 inbox_event，家庭与成员从登录态反查。
  * 语音同步走 Paraformer 转写：短语音在响应里就带转写文本；ASR 没配 Key 或失败时
  * 音频照样落盘、事件置降级状态（asr_unconfigured / asr_failed），不丢输入。
+ * 落库/转写回填时按规则打 parsed_type 标（InboxService.parseType），事件可一键转记忆（to-memory）。
  */
 @RestController
 @RequestMapping("/api/inbox")
@@ -50,24 +53,31 @@ public class InboxController {
     private final InboxService inboxService;
     private final CurrentUser currentUser;
     private final AsrClient asrClient;
+    private final MemoryService memoryService;
     private final Path audioDir;
 
     public InboxController(InboxService inboxService, CurrentUser currentUser, AsrClient asrClient,
+                           MemoryService memoryService,
                            @Value("${butler.inbox.audio-dir:./data/audio}") String audioDir) {
         this.inboxService = inboxService;
         this.currentUser = currentUser;
         this.asrClient = asrClient;
+        this.memoryService = memoryService;
         this.audioDir = Path.of(audioDir);
     }
 
     public record TextRequest(@NotBlank String text) {
     }
 
+    /** 转记忆可选参数：不传走默认（scope=common、kind=event、visibility=private）。 */
+    public record ToMemoryRequest(String scope, String kind, String visibility) {
+    }
+
     @PostMapping("/text")
     public ResponseEntity<Map<String, Object>> text(@RequestBody @Valid TextRequest request) {
         AccountService.MemberView me = currentUser.requireMember();
         long eventId = inboxService.createEvent(me.familyId(), me.id(), "text", null,
-                request.text(), "unknown", "new");
+                request.text(), InboxService.parseType(request.text()), "new");
         return ResponseEntity.status(HttpStatus.CREATED).body(eventBody(inboxService.getEvent(eventId), null));
     }
 
@@ -125,6 +135,37 @@ public class InboxController {
                 .toList());
     }
 
+    /**
+     * 一键转记忆（W3）：把一条本家庭事件的文本落成长期记忆，补上「语音一句话 → 记忆」的最后一环。
+     * 归属沿用事件的成员（内容是谁说的就记在谁名下），source 沿用事件来源（voice/text/file），
+     * scope/kind/visibility 不传走默认 common/event/private（枚举校验在 MemoryService 里做）。
+     * v0 口径：每次调用新建一条记忆（不防重），转错了在记忆列表里删掉即可。
+     * 事件不存在/不属于本家庭 → 404；文本为空（如语音还没转写）→ 400 明示。
+     */
+    @PostMapping("/{id}/to-memory")
+    public ResponseEntity<Map<String, Object>> toMemory(@PathVariable long id,
+                                                          @RequestBody(required = false) ToMemoryRequest request) {
+        AccountService.MemberView me = currentUser.requireMember();
+        InboxService.EventView event = inboxService.getEvent(id);
+        if (event == null || event.familyId() != me.familyId()) {
+            throw ApiException.notFound("收件箱事件不存在或不属于本家庭");
+        }
+        if (event.text() == null || event.text().isBlank()) {
+            throw ApiException.badRequest("该事件文本为空，无法转记忆（事件状态：" + event.status()
+                    + "）。语音事件请先完成转写");
+        }
+        ToMemoryRequest req = request == null ? new ToMemoryRequest(null, null, null) : request;
+        MemoryService.MemoryView created = memoryService.create(me.familyId(), event.memberId(),
+                req.scope() == null || req.scope().isBlank() ? "common" : req.scope(),
+                req.kind() == null || req.kind().isBlank() ? "event" : req.kind(),
+                event.text(), event.source(),
+                req.visibility() == null || req.visibility().isBlank() ? "private" : req.visibility(),
+                null);
+        Map<String, Object> body = memoryBody(created);
+        body.put("eventId", event.id());
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
     private String saveAudio(byte[] audio, String ext) {
         try {
             Files.createDirectories(audioDir);
@@ -159,6 +200,21 @@ public class InboxController {
             // 落到兜底
         }
         return 16000;
+    }
+
+    static Map<String, Object> memoryBody(MemoryService.MemoryView m) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", m.id());
+        body.put("familyId", m.familyId());
+        body.put("memberId", m.memberId());
+        body.put("scope", m.scope());
+        body.put("kind", m.kind());
+        body.put("content", m.content());
+        body.put("source", m.source());
+        body.put("visibility", m.visibility());
+        body.put("expiresAt", m.expiresAt());
+        body.put("createdAt", m.createdAt());
+        return body;
     }
 
     static Map<String, Object> eventBody(InboxService.EventView e, String note) {

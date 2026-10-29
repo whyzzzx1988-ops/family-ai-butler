@@ -131,6 +131,27 @@ curl -X POST localhost:8080/api/work/minutes/N/todos/confirm -H "Authorization: 
 curl -X POST "localhost:8080/api/briefings/generate?date=<明天日期>" -H "Authorization: T"
 ```
 
+收件箱解析与转记忆自检（第二周 W3，补第一周欠账）。规则打标是纯关键词匹配（优先级：纪要/会议记录 → minutes，提醒/别忘了 → reminder，记住/记一下/记下来/备忘 → memory，其余 unknown），文本落库与语音转写回填时都会打标：
+
+```bash
+# 1) 三句话验打标 → parsedType 应分别为 memory / reminder / minutes；随便一句话 → unknown
+curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"记住，儿子对花生过敏"}'
+curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"明天下午三点提醒我开会"}'
+curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"这段录音帮我记纪要"}'
+# 2) 把第一条（记 id 为 V）一键转记忆 → 201，返回记忆条目（source=text、scope=common、kind=event），带 eventId=V
+curl -X POST localhost:8080/api/inbox/V/to-memory -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
+# 3) 记忆列表 → 应能看到这条
+curl localhost:8080/api/memories -H "Authorization: T"
+# 4) 想直接喂简报的学习/睡眠段：转记忆时带 scope，如 {"scope":"health","kind":"record","visibility":"family"}
+# 5) 不存在的事件 id 转记忆 → 404
+curl -X POST localhost:8080/api/inbox/999999/to-memory -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
+```
+
+ASR 恢复后，语音事件同法验收：上传一段「记住……」的语音，转写回填后 parsedType=memory，点 to-memory 后记忆里 source=voice。
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
