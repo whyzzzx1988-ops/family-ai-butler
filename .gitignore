@@ -1,0 +1,23 @@
+# 绝不入库：密钥与本地配置
+.env
+*.env
+application-local.yml
+**/secrets/
+
+# 构建产物
+target/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# 系统与日志
+.DS_Store
+*.log
+logs/

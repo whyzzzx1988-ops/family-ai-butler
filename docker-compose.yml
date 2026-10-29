@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/butler
+      DB_USER: butler
+      DB_PASSWORD: butler_dev_only
+      REDIS_HOST: redis
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: butler
+      POSTGRES_USER: butler
+      POSTGRES_PASSWORD: butler_dev_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - butler_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U butler -d butler"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  butler_db:

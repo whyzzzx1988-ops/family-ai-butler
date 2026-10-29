@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: family-ai-butler
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/butler}
+    username: ${DB_USER:butler}
+    password: ${DB_PASSWORD:butler_dev_only}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: 8080
+
+# Sa-Token 鉴权配置（混合路线：登录/会话/token 用现成框架，家庭数据隔离自研）
+sa-token:
+  token-name: Authorization
+  timeout: 2592000
+  active-timeout: -1
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-log: false
+
+butler:
+  llm:
+    # 密钥只走环境变量，绝不写进仓库
+    deepseek-api-key: ${DEEPSEEK_API_KEY:}
+    default-model: deepseek-chat
+  briefing:
+    morning-cron: "0 0 7 * * *"
