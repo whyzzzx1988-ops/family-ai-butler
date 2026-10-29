@@ -40,6 +40,12 @@ butler:
     # 密钥只走环境变量，绝不写进仓库
     deepseek-api-key: ${DEEPSEEK_API_KEY:}
     default-model: deepseek-chat
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    # 参考价（元/百万 token），官方调价时改这里即可；成本落 llm_call_log 可汇总
+    pricing:
+      deepseek-chat:
+        input-per-million: 2.0
+        output-per-million: 8.0
   asr:
     # 百炼 DashScope API Key 只走环境变量；没配时语音事件落 asr_unconfigured 状态，音频照常保存
     api-key: <redacted>

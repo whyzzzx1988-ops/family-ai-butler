@@ -80,6 +80,19 @@ curl "localhost:8080/api/briefings?date=<明天日期>" -H "Authorization: T"
 
 定时任务每天 07:00（Asia/Shanghai）自动为每个家庭生成当日简报，应用开着即可在日志里看到「晨间简报已生成」。
 
+模型网关自检（D7，每次调用落 llm_call_log、成本可汇总）。启动前先设 DeepSeek Key：PowerShell 里 `$env:DEEPSEEK_API_KEY="sk-..."` 再启动应用，然后：
+
+```bash
+# 1) 聊一句 → 返回 reply 的同时给 logId，成本按 yml 参考价折算
+curl -X POST localhost:8080/api/llm/chat -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"prompt":"用一句话介绍你自己"}'
+# 2) 用量汇总 → 按模型列出调用数 / token / 成本，失败调用单独计数
+curl localhost:8080/api/llm/usage -H "Authorization: T"
+# 3) 在 IDEA 数据源里看 llm_call_log 表，应有刚那一行（status=ok、tokens 与 cost 非零）
+```
+
+没设 Key 时 chat 返回 503 明示，不会假装成功。
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
