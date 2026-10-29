@@ -60,6 +60,26 @@ curl localhost:8080/api/memories -H "Authorization: T2"
 curl -X DELETE localhost:8080/api/memories/M -H "Authorization: T"
 ```
 
+全家简报自检（D6，三段式，缺数据明说）。继续用 token T：
+
+```bash
+# 1) 空数据先生成今日简报 → 三段应分别写明「暂无到期待办 / 暂无学习记录 / 暂无睡眠记录」，不编造
+curl -X POST localhost:8080/api/briefings/generate -H "Authorization: T"
+# 2) 造数据：一条明天 10:00 到期的待办、一条学习记录、一条睡眠记录（后两条走记忆接口）
+curl -X POST localhost:8080/api/todos -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"title":"项目周会","dueAt":"<明天日期>T10:00:00+08:00"}'
+curl -X POST localhost:8080/api/memories -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"scope":"learn","kind":"record","content":"儿子背了 50 个单词","visibility":"family"}'
+curl -X POST localhost:8080/api/memories -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"scope":"health","kind":"record","content":"昨晚 23:20 睡，睡了约 7 小时"}'
+# 3) 生成「明天」的简报（date=明天）→ 工作段有 10:00 项目周会、学习段有背单词、睡眠段有睡眠记录
+curl -X POST "localhost:8080/api/briefings/generate?date=<明天日期>" -H "Authorization: T"
+# 4) 按日期读回
+curl "localhost:8080/api/briefings?date=<明天日期>" -H "Authorization: T"
+```
+
+定时任务每天 07:00（Asia/Shanghai）自动为每个家庭生成当日简报，应用开着即可在日志里看到「晨间简报已生成」。
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
