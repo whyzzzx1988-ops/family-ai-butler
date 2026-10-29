@@ -93,6 +93,27 @@ curl localhost:8080/api/llm/usage -H "Authorization: T"
 
 没设 Key 时 chat 返回 503 明示，不会假装成功。
 
+纪要生成自检（第二周 W1，工作模块第一件）。启动前同样先设 `DEEPSEEK_API_KEY`，继续用 token T。百炼 ASR 还没恢复也没关系：先用一条文本事件当「已转写文本」把纪要链路跑通，真语音事件等转写补验后同法验证：
+
+```bash
+# 1) 造一条带会议内容的文本事件（模拟已转写的录音），记返回的 id 为 E
+curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"今天项目周会定了两件事：一是首页改版下周三上线，二是张三负责联系设计师确认图标，预算先按五万走，后续再对账。"}'
+# 2) 生成纪要 → 201，contentMd 应含 # 标题与 ## 背景 / ## 结论 / ## 讨论要点 三段，内容对得上原文，响应带 llmLogId
+curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"eventId":E}'
+# 3) 对账：用量汇总里应多一次调用；IDEA 里看 llm_call_log，应有一行 module=work 的新账
+curl localhost:8080/api/llm/usage -H "Authorization: T"
+# 4) 同一事件再生成一次 → 409（一条事件只生成一份纪要，不重复花模型调用）
+curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"eventId":E}'
+# 5) 不存在的事件 id → 404
+curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"eventId":999999}'
+```
+
+在 IDEA 数据源里应能看到新表 `meeting_note`，纪要行 event_id=E 与来源事件一一对应。
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
