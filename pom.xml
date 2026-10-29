@@ -68,11 +68,12 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- local 调试 Profile 用：内存 H2 顶替 Postgres，本机零 Docker 启动 -->
+        <!-- local 调试 Profile 用：内存 H2 顶替 Postgres，本机零 Docker 启动。
+             注意不能用 runtime scope：LocalDevConfig 要编译引用 org.h2.tools.Server 起 TCP 服务，
+             runtime scope 不在编译类路径上会报「程序包 org.h2.tools 不存在」 -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
