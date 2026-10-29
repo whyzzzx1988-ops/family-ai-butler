@@ -13,6 +13,12 @@ import java.util.List;
 @Component
 public class StpInterfaceImpl implements StpInterface {
 
+    private final AccountService accountService;
+
+    public StpInterfaceImpl(AccountService accountService) {
+        this.accountService = accountService;
+    }
+
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         // 家庭场景不做细粒度权限点，统一走角色 + family_id 校验
@@ -21,7 +27,8 @@ public class StpInterfaceImpl implements StpInterface {
 
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        // TODO(D3): 查 member.role 返回
-        return List.of();
+        // D3 落地：loginId 就是 memberId，返回其在家庭中的角色
+        String role = accountService.roleOf(Long.parseLong(loginId.toString()));
+        return role == null ? List.of() : List.of(role);
     }
 }

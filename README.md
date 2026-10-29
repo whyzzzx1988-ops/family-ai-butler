@@ -35,7 +35,28 @@ IDEA 里看数据：新建 **H2** 数据源（不要建 PostgreSQL 的，本地�
 {"familyId": 1, "memberId": 1, "text": "明天下午三点提醒我开会"}
 ```
 
-返回 202 + `status: accepted` 即骨架管道通。鉴权管道自检：`POST /api/auth/login`，body `{"memberId": 1, "password": "dev"}`，返回 tokenValue 即 Sa-Token 打通（骨架期未校验密码，D3 接入 BCrypt 校验）。
+返回 202 + `status: accepted` 即骨架管道通。
+
+账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
+
+```bash
+# 1) 建家庭（= 注册户主），返回 201 + tokenValue，记为 T
+curl -X POST localhost:8080/api/families -H "Content-Type: application/json" \
+  -d '{"familyName":"我的家","ownerNickname":"宇哥","identifier":"yuge","password":"dev123456"}'
+# 2) 密码错登录 → 401 {"error":"用户名或密码不正确"}
+curl -X POST localhost:8080/api/auth/login -H "Content-Type: application/json" \
+  -d '{"identifier":"yuge","password":"wrong"}'
+# 3) 密码对登录 → 200 + tokenValue
+curl -X POST localhost:8080/api/auth/login -H "Content-Type: application/json" \
+  -d '{"identifier":"yuge","password":"dev123456"}'
+# 4) 带 token 加两个成员（一个带账号、一个孩子先不给账号）
+curl -X POST localhost:8080/api/families/members -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"nickname":"媳妇","role":"spouse","identifier":"xifu","password":"dev123456"}'
+curl -X POST localhost:8080/api/families/members -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"nickname":"儿子","role":"child"}'
+# 5) 成员列表 → 应有 3 人且都在同一个 familyId；不带 token 访问 → 401
+curl localhost:8080/api/families/members -H "Authorization: T"
+```
 
 ## 包结构
 
