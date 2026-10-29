@@ -43,6 +43,23 @@ curl localhost:8080/api/inbox -H "Authorization: T"
 
 语音转写走 Paraformer 实时版（DashScope WebSocket 推流，不需要音频公网地址）。启动应用前先设百炼 API Key 环境变量：PowerShell 里 `$env:DASHSCOPE_API_KEY="sk-..."` 再启动。没设 Key 时语音仍会落盘并返回 `asr_unconfigured` 状态（不丢音频）；音频文件存在项目 `data/audio/`（不入库），支持 wav/mp3/pcm/aac/m4a/amr/opus，请用单声道录音。
 
+长期记忆自检（D5，存/查/删 + 隔离）。继续用 D3 的 token T（户主）和配偶 token T2（用 xifu 账号登录拿）：
+
+```bash
+# 1) 存一条私有记忆 → 201，记 id 为 M
+curl -X POST localhost:8080/api/memories -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"scope":"work","kind":"preference","content":"开会喜欢先看结论再看细节"}'
+# 2) 存一条全家可见的学习记忆
+curl -X POST localhost:8080/api/memories -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"scope":"learn","kind":"record","content":"儿子本周背了 50 个单词","visibility":"family"}'
+# 3) 我的列表 → 两条都在；按 scope=learn 过滤 → 只剩学习那条
+curl localhost:8080/api/memories -H "Authorization: T"
+# 4) 配偶视角 → 只能看到全家可见的那条，看不到私有记忆；直接按 id 查私有记忆 → 404
+curl localhost:8080/api/memories -H "Authorization: T2"
+# 5) 删除私有记忆 → 再查该 id → 404，列表里也消失
+curl -X DELETE localhost:8080/api/memories/M -H "Authorization: T"
+```
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
