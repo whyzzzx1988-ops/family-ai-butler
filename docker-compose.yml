@@ -4,6 +4,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # 显式指定 prod，覆盖 application.yml 里的默认 local（容器内必须走真 Postgres）
+      SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/butler
       DB_USER: butler
       DB_PASSWORD: butler_dev_only

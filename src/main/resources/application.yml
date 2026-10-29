@@ -1,6 +1,10 @@
 spring:
   application:
     name: family-ai-butler
+  profiles:
+    # 没显式指定 Profile 时默认走 local（H2 免 Docker 调试），避免直接点 Run 去连本机 5432 报错
+    # Docker 部署由 compose 注入 SPRING_PROFILES_ACTIVE=prod，不受此默认值影响
+    default: local
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/butler}
     username: ${DB_USER:butler}

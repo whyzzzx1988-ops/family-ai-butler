@@ -23,7 +23,7 @@ app + Postgres(pgvector) + Redis 全在容器里，数据落库不丢，迁移�
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-IDE 里调试同理：Active profiles 设为 `local` 后直接 Run/Debug。此模式数据库是 H2 内存库（迁移走 `db/migration-h2`，重启清零），token 存内存，不需要本机装 Postgres 和 Redis。H2 控制台：http://localhost:8080/h2-console（JDBC URL 填 `jdbc:h2:mem:butler`）。
+也可以什么都不带直接 Run/Debug：`application.yml` 已把默认 Profile 设为 local，没指定时自动走这条路（Docker 部署由 compose 显式注入 prod，不受影响）。此模式数据库是 H2 内存库（迁移走 `db/migration-h2`，重启清零），token 存内存，不需要本机装 Postgres 和 Redis。H2 控制台：http://localhost:8080/h2-console（JDBC URL 填 `jdbc:h2:mem:butler`）。
 
 附注：想用真 Postgres 数据又在 IDE 里断点调试，可以 `docker compose up -d db redis` 只起依赖，再用默认 Profile 本地 Run。
 
