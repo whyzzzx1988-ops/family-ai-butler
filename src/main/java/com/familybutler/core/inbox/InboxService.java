@@ -16,7 +16,7 @@ import java.util.List;
  *   asr_processing   语音已存，正在转写（同步转写时只是中间态）
  *   asr_unconfigured 没配 DASHSCOPE_API_KEY，音频已存、转写待补
  *   asr_failed       转写失败（原因记在服务端日志），音频仍保留可重跑
- * parsed_type 语义（W3 规则打标，见 parseType）：minutes / reminder / memory / unknown。
+ * parsed_type 语义（W3 规则打标、第三周扩 learn，见 parseType）：minutes / reminder / memory / learn / unknown。
  */
 @Service
 public class InboxService {
@@ -62,10 +62,13 @@ public class InboxService {
     }
 
     /**
-     * 解析分发 v0（W3，补 D6 欠账）：纯规则打标，可解释、可复核，不做 Agent 编排。
-     * 按优先级从高到低匹配（先具体后宽泛，「记得提醒我」归 reminder 不归 memory）：
+     * 解析分发 v0（W3，补 D6 欠账；第三周 L3 扩 learn 一档）：纯规则打标，可解释、可复核，不做 Agent 编排。
+     * 按优先级从高到低匹配（先具体后宽泛，「记得提醒我」归 reminder 不归 memory，
+     * 「记住这个单词」归 memory 不归 learn）：
      *   含「纪要 / 会议记录」→ minutes；含「提醒 / 别忘了 / 别忘记」→ reminder；
-     *   含「记住 / 记一下 / 记下来 / 备忘」→ memory；其余 → unknown（保持原样等后续版本）。
+     *   含「记住 / 记一下 / 记下来 / 备忘」→ memory；
+     *   含「错题 / 做错 / 错了 / 背单词 / 生词 / 单词 / 复习」→ learn；
+     *   其余 → unknown（保持原样等后续版本）。
      */
     public static String parseType(String text) {
         if (text == null || text.isBlank()) {
@@ -79,6 +82,11 @@ public class InboxService {
         }
         if (text.contains("记住") || text.contains("记一下") || text.contains("记下来") || text.contains("备忘")) {
             return "memory";
+        }
+        if (text.contains("错题") || text.contains("做错") || text.contains("错了")
+                || text.contains("背单词") || text.contains("生词") || text.contains("单词")
+                || text.contains("复习")) {
+            return "learn";
         }
         return "unknown";
     }
