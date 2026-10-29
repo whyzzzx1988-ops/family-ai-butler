@@ -7,13 +7,25 @@
 
 Web 先行（响应式，一套覆盖电脑与手机浏览器），小程序第 5 周再补。
 
-## 本地启动
+## 两种启动方式
+
+**方式一：全 Docker（接近生产，验收用）**
 
 ```bash
-docker compose up -d db redis
-mvn spring-boot:run
-# 或整套容器：docker compose up --build
+docker compose up --build
 ```
+
+app + Postgres(pgvector) + Redis 全在容器里，数据落库不丢，迁移走 `db/migration`。
+
+**方式二：本地调试（不用 Docker，日常开发用）**
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+IDE 里调试同理：Active profiles 设为 `local` 后直接 Run/Debug。此模式数据库是 H2 内存库（迁移走 `db/migration-h2`，重启清零），token 存内存，不需要本机装 Postgres 和 Redis。H2 控制台：http://localhost:8080/h2-console（JDBC URL 填 `jdbc:h2:mem:butler`）。
+
+附注：想用真 Postgres 数据又在 IDE 里断点调试，可以 `docker compose up -d db redis` 只起依赖，再用默认 Profile 本地 Run。
 
 启动后自检：`POST http://localhost:8080/api/inbox/text`，body 示例：
 
