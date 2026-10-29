@@ -21,3 +21,6 @@ out/
 .DS_Store
 *.log
 logs/
+
+# 语音原文件等运行时数据
+data/

@@ -29,13 +29,19 @@ IDEA 里看数据：新建 **H2** 数据源（不要建 PostgreSQL 的，本地�
 
 附注：想用真 Postgres 数据又在 IDE 里断点调试，可以 `docker compose up -d db redis` 只起依赖，再用默认 Profile 本地 Run。
 
-启动后自检：`POST http://localhost:8080/api/inbox/text`，body 示例：
+收件箱自检（D4，文本/语音都真落库，家庭与成员从 token 反查，body 不再传 familyId/memberId）：
 
-```json
-{"familyId": 1, "memberId": 1, "text": "明天下午三点提醒我开会"}
+```bash
+# 文本进箱（带 D3 的 token T）→ 201，返回事件（含 id / status=new）
+curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"明天下午三点提醒我开会"}'
+# 语音进箱 → 201，响应 text 字段即转写结果（短语音数秒内返回）
+curl -X POST localhost:8080/api/inbox/voice -H "Authorization: T" -F "file=@test.wav"
+# 列表（Web 端可见的形态）→ 本家庭最近事件，新到旧
+curl localhost:8080/api/inbox -H "Authorization: T"
 ```
 
-返回 202 + `status: accepted` 即骨架管道通。
+语音转写走 Paraformer 实时版（DashScope WebSocket 推流，不需要音频公网地址）。启动应用前先设百炼 API Key 环境变量：PowerShell 里 `$env:DASHSCOPE_API_KEY="sk-..."` 再启动。没设 Key 时语音仍会落盘并返回 `asr_unconfigured` 状态（不丢音频）；音频文件存在项目 `data/audio/`（不入库），支持 wav/mp3/pcm/aac/m4a/amr/opus，请用单声道录音。
 
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 

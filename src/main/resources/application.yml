@@ -1,6 +1,10 @@
 spring:
   application:
     name: family-ai-butler
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
   profiles:
     # 没显式指定 Profile 时默认走 local（H2 免 Docker 调试），避免直接点 Run 去连本机 5432 报错
     # Docker 部署由 compose 注入 SPRING_PROFILES_ACTIVE=prod，不受此默认值影响
@@ -36,5 +40,14 @@ butler:
     # 密钥只走环境变量，绝不写进仓库
     deepseek-api-key: ${DEEPSEEK_API_KEY:}
     default-model: deepseek-chat
+  asr:
+    # 百炼 DashScope API Key 只走环境变量；没配时语音事件落 asr_unconfigured 状态，音频照常保存
+    api-key: <redacted>
+    ws-url: ${ASR_WS_URL:wss://dashscope.aliyuncs.com/api-ws/v1/inference}
+    model: ${ASR_MODEL:paraformer-realtime-v2}
+    timeout-seconds: 30
+  inbox:
+    # 语音原文件存放目录（已进 .gitignore，不入库）
+    audio-dir: ${BUTLER_AUDIO_DIR:./data/audio}
   briefing:
     morning-cron: "0 0 7 * * *"
