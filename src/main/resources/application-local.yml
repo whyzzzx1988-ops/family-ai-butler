@@ -1,6 +1,9 @@
 # local 调试 Profile：不用 Docker、不用装 Postgres/Redis
 # - 数据库：H2 内存库（PostgreSQL 兼容模式），迁移走 db/migration-h2，重启清零
 # - token：内存存储（由 LocalDevConfig 的 @Primary SaTokenDao 顶替 redis 实现）
+# - H2 TCP 服务在 9092 端口（由 LocalDevConfig 启动）：IDEA 新建 H2 数据源，
+#   URL 填 jdbc:h2:tcp://localhost:9092/mem:butler 即可直连应用正在用的库；
+#   应用没启动时连不上属正常。不要再建 PostgreSQL 数据源连 localhost:5432。
 # - 用法：mvn spring-boot:run -Dspring-boot.run.profiles=local
 #   或 IDE 里把 Active profiles 设为 local 后直接 Run/Debug
 spring:
