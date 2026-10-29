@@ -131,6 +131,17 @@ curl -X POST localhost:8080/api/work/minutes/N/todos/confirm -H "Authorization: 
 curl -X POST "localhost:8080/api/briefings/generate?date=<明天日期>" -H "Authorization: T"
 ```
 
+纪要列表/详情自检（第二周 W4，工作模块收尾）：
+
+```bash
+# 1) 列表 → 本家庭纪要摘要（id / 标题 / 候选数 / 已确认数），新到旧，不带正文
+curl localhost:8080/api/work/minutes -H "Authorization: T"
+# 2) 详情（N 换成列表里的纪要 id）→ 全文 contentMd + 候选清单 + 已确认下标
+curl localhost:8080/api/work/minutes/N -H "Authorization: T"
+# 3) 不存在的纪要 id → 404
+curl localhost:8080/api/work/minutes/999999 -H "Authorization: T"
+```
+
 收件箱解析与转记忆自检（第二周 W3，补第一周欠账）。规则打标是纯关键词匹配（优先级：纪要/会议记录 → minutes，提醒/别忘了 → reminder，记住/记一下/记下来/备忘 → memory，其余 unknown），文本落库与语音转写回填时都会打标：
 
 ```bash

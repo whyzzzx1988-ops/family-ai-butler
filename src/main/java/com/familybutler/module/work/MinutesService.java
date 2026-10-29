@@ -219,6 +219,16 @@ public class MinutesService {
         return rows.get(0);
     }
 
+    /** 本家庭纪要列表（W4）：新到旧，family_id 仍是唯一过滤边界。 */
+    public List<MinutesView> listByFamily(long familyId, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        return jdbc.query(
+                "select id, family_id, member_id, event_id, title, content_md, todo_candidates, "
+                        + "todo_confirmed_indexes, created_at from meeting_note "
+                        + "where family_id = ? order by id desc limit ?",
+                (rs, i) -> mapRow(rs), familyId, safeLimit);
+    }
+
     /** 家庭内读纪要：跨家庭与不存在统一 404。 */
     public MinutesView getByIdForFamily(long id, long familyId) {
         List<MinutesView> rows = jdbc.query(

@@ -8,10 +8,12 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
@@ -21,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 纪要接口（第二周 W1 生成 + W2 待办确认）：传一条 inbox 事件 id 出纪要并落表，
- * 生成同轮抽出的待办候选可勾选确认成正式待办。
+ * 纪要接口（第二周 W1 生成 + W2 待办确认 + W4 列表/详情）：传一条 inbox 事件 id 出纪要并落表，
+ * 生成同轮抽出的待办候选可勾选确认成正式待办，列表给摘要、详情给全文。
  * 家庭与成员从登录态反查，请求里不接受 familyId/memberId。
  * 失败口径：事件/纪要不属于本家庭 404、转写为空 400、重复生成 409、
  * 没配 DEEPSEEK_API_KEY 503、模型调用失败 502（LlmGateway 透明上抛，且失败也已落账）；
@@ -53,17 +55,7 @@ public class MinutesController {
     public ResponseEntity<Map<String, Object>> create(@RequestBody @Valid CreateMinutesRequest request) {
         AccountService.MemberView me = currentUser.requireMember();
         MinutesService.GenerateResult result = minutesService.generate(me.familyId(), me.id(), request.eventId());
-        MinutesService.MinutesView m = result.minutes();
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("id", m.id());
-        body.put("familyId", m.familyId());
-        body.put("memberId", m.memberId());
-        body.put("eventId", m.eventId());
-        body.put("title", m.title());
-        body.put("contentMd", m.contentMd());
-        body.put("todoCandidates", candidateBodies(m.todoCandidates()));
-        body.put("todoConfirmedIndexes", m.todoConfirmedIndexes());
-        body.put("createdAt", m.createdAt());
+        Map<String, Object> body = minutesBody(result.minutes());
         body.put("model", result.model());
         body.put("tokensIn", result.tokensIn());
         body.put("tokensOut", result.tokensOut());
@@ -76,6 +68,22 @@ public class MinutesController {
             body.put("todoExtractionNote", result.todoExtractionNote());
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    /** 本家庭纪要列表（W4）：只给摘要（标题 + 候选计数），正文走详情，别把长文本塞进列表。 */
+    @GetMapping("/minutes")
+    public ResponseEntity<List<Map<String, Object>>> list(@RequestParam(defaultValue = "20") int limit) {
+        AccountService.MemberView me = currentUser.requireMember();
+        return ResponseEntity.ok(minutesService.listByFamily(me.familyId(), limit).stream()
+                .map(MinutesController::summaryBody)
+                .toList());
+    }
+
+    /** 纪要详情（W4）：全文 + 候选 + 已确认下标；跨家庭/不存在统一 404。 */
+    @GetMapping("/minutes/{id}")
+    public ResponseEntity<Map<String, Object>> detail(@PathVariable long id) {
+        AccountService.MemberView me = currentUser.requireMember();
+        return ResponseEntity.ok(minutesBody(minutesService.getByIdForFamily(id, me.familyId())));
     }
 
     /** 勾选候选转正式待办：负责人默认纪要创建者，dueAt 按候选的时间线索选填。 */
@@ -92,6 +100,33 @@ public class MinutesController {
         body.put("todoConfirmedIndexes", result.minutes().todoConfirmedIndexes());
         body.put("createdTodos", result.createdTodos().stream().map(MinutesController::todoBody).toList());
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    static Map<String, Object> minutesBody(MinutesService.MinutesView m) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", m.id());
+        body.put("familyId", m.familyId());
+        body.put("memberId", m.memberId());
+        body.put("eventId", m.eventId());
+        body.put("title", m.title());
+        body.put("contentMd", m.contentMd());
+        body.put("todoCandidates", candidateBodies(m.todoCandidates()));
+        body.put("todoConfirmedIndexes", m.todoConfirmedIndexes());
+        body.put("createdAt", m.createdAt());
+        return body;
+    }
+
+    static Map<String, Object> summaryBody(MinutesService.MinutesView m) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", m.id());
+        body.put("familyId", m.familyId());
+        body.put("memberId", m.memberId());
+        body.put("eventId", m.eventId());
+        body.put("title", m.title());
+        body.put("todoCandidateCount", m.todoCandidates().size());
+        body.put("todoConfirmedCount", m.todoConfirmedIndexes().size());
+        body.put("createdAt", m.createdAt());
+        return body;
     }
 
     static List<Map<String, Object>> candidateBodies(List<MinutesService.TodoCandidate> candidates) {
