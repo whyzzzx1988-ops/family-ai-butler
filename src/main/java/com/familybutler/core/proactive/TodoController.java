@@ -67,6 +67,7 @@ public class TodoController {
         body.put("title", t.title());
         body.put("dueAt", t.dueAt());
         body.put("status", t.status());
+        body.put("sourceEventId", t.sourceEventId());
         body.put("createdAt", t.createdAt());
         return body;
     }

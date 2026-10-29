@@ -26,14 +26,21 @@ public class TodoService {
     }
 
     public record TodoView(long id, long familyId, long ownerMemberId, String title,
-                           String dueAt, String status, String createdAt) {
+                           String dueAt, String status, Long sourceEventId, String createdAt) {
     }
 
     public TodoView create(long familyId, long ownerMemberId, String title, OffsetDateTime dueAt) {
+        return create(familyId, ownerMemberId, title, dueAt, null);
+    }
+
+    /** 带来源事件的建待办（W2 纪要确认流用）：source_event_id 回填纪要的来源 inbox 事件，全程可溯。 */
+    public TodoView create(long familyId, long ownerMemberId, String title, OffsetDateTime dueAt,
+                           Long sourceEventId) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    "insert into todo_task(family_id, owner_member_id, title, due_at, status) values (?, ?, ?, ?, 'open')",
+                    "insert into todo_task(family_id, owner_member_id, title, due_at, status, source_event_id) "
+                            + "values (?, ?, ?, ?, 'open', ?)",
                     Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, familyId);
             ps.setLong(2, ownerMemberId);
@@ -42,6 +49,11 @@ public class TodoService {
                 ps.setNull(4, Types.TIMESTAMP_WITH_TIMEZONE);
             } else {
                 ps.setObject(4, dueAt);
+            }
+            if (sourceEventId == null) {
+                ps.setNull(5, Types.BIGINT);
+            } else {
+                ps.setLong(5, sourceEventId);
             }
             return ps;
         }, keyHolder);
@@ -55,14 +67,14 @@ public class TodoService {
     /** 我的未完成待办，按到期时间排（无日期的排最后）。 */
     public List<TodoView> listOpen(long ownerMemberId) {
         return jdbc.query(
-                "select id, family_id, owner_member_id, title, due_at, status, created_at from todo_task "
+                "select id, family_id, owner_member_id, title, due_at, status, source_event_id, created_at from todo_task "
                         + "where owner_member_id = ? and status = 'open' order by due_at asc nulls last, id",
                 TodoService::mapRow, ownerMemberId);
     }
 
     public TodoView getOwn(long id, long ownerMemberId) {
         List<TodoView> rows = jdbc.query(
-                "select id, family_id, owner_member_id, title, due_at, status, created_at from todo_task "
+                "select id, family_id, owner_member_id, title, due_at, status, source_event_id, created_at from todo_task "
                         + "where id = ? and owner_member_id = ?",
                 TodoService::mapRow, id, ownerMemberId);
         if (rows.isEmpty()) {
@@ -82,8 +94,11 @@ public class TodoService {
     }
 
     private static TodoView mapRow(java.sql.ResultSet rs, int i) throws java.sql.SQLException {
+        long sourceEventId = rs.getLong("source_event_id");
+        boolean sourceEventNull = rs.wasNull();
         return new TodoView(rs.getLong("id"), rs.getLong("family_id"), rs.getLong("owner_member_id"),
                 rs.getString("title"), rs.getString("due_at"), rs.getString("status"),
+                sourceEventNull ? null : sourceEventId,
                 rs.getString("created_at"));
     }
 }

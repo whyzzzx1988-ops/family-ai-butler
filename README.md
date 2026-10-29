@@ -114,6 +114,23 @@ curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-T
 
 在 IDEA 数据源里应能看到新表 `meeting_note`，纪要行 event_id=E 与来源事件一一对应。
 
+待办候选自检（第二周 W2，接着上面的纪要走）。生成纪要时同轮会再调一次网关抽候选，记纪要 id 为 N：
+
+```bash
+# 1) 看候选：W1 第 2 步的响应里 todoCandidates 应非空——「联系设计师确认图标」带 ownerHint=张三、
+#    上线相关候选带 dueHint=下周三（线索只存原文，不解析成日期）；llm_call_log 里应有两行 module=work（纪要 + 抽取）
+# 2) 勾选确认一条，并按线索给它一个到期时间（<明天日期> 换成实际日期）→ 201，createdTodos 里 sourceEventId=E、负责人是纪要创建者
+curl -X POST localhost:8080/api/work/minutes/N/todos/confirm -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"items":[{"index":0,"dueAt":"<明天日期>T10:00:00+08:00"}]}'
+# 3) 待办列表 → 刚确认的那条在列，sourceEventId=E
+curl localhost:8080/api/todos -H "Authorization: T"
+# 4) 同一下标再确认 → 409（防重复建待办）；下标越界 → 400
+curl -X POST localhost:8080/api/work/minutes/N/todos/confirm -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"items":[{"index":0}]}'
+# 5) 合流验收：生成「明天」的简报 → 「今日工作」段应出现这条待办
+curl -X POST "localhost:8080/api/briefings/generate?date=<明天日期>" -H "Authorization: T"
+```
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
