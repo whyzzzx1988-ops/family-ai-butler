@@ -163,12 +163,12 @@ curl -X POST localhost:8080/api/inbox/999999/to-memory -H "Authorization: T" -H 
 
 ASR 恢复后，语音事件同法验收：上传一段「记住……」的语音，转写回填后 parsedType=memory，点 to-memory 后记忆里 source=voice。
 
-学习记录自检（第三周 L1–L4，学习模块第一件）。统一表 `learn_record`（kind=word/mistake/note），加工走 LlmGateway（module=learn 落账），建记录同轮双写一条 scope=learn 记忆喂简报。先从成员列表里记下孩子的 member id，记为 C：
+学习记录自检（第三周 L1–L4，学习模块第一件）。统一表 `learn_record`（kind=word/mistake/note），加工走 LlmGateway（module=learn 落账），简报学习段直查本表（第四周 R3 起，双写记忆已下线）。先从成员列表里记下孩子的 member id，记为 C：
 
 ```bash
 # 0) 拿孩子成员 id（D3 自检里建的「儿子」）
 curl localhost:8080/api/families/members -H "Authorization: T"
-# 1) 直接文本建单词记录（归属孩子）→ 201，detail 应有 headword/phonetic/meaning/example，响应带 llmLogId 与 briefingMemoryId
+# 1) 直接文本建单词记录（归属孩子）→ 201，detail 应有 headword/phonetic/meaning/example，响应带 llmLogId，reviewStage=0、nextReviewAt 为明天
 curl -X POST localhost:8080/api/learn/records -H "Authorization: T" -H "Content-Type: application/json" \
   -d '{"kind":"word","subject":"英语","content":"今天学了单词 abandon","childMemberId":C}'
 # 2) 乱填 childMemberId → 400；kind 乱填 → 400
@@ -183,6 +183,28 @@ curl -X POST localhost:8080/api/inbox/L/to-learn -H "Authorization: T" -H "Conte
 curl "localhost:8080/api/learn/records?kind=word" -H "Authorization: T"
 # 5) 简报合流：生成「明天」的简报 → 「孩子昨日学习」段应出现今天建的、归属孩子的学习内容
 curl -X POST "localhost:8080/api/briefings/generate?date=<明天日期>" -H "Authorization: T"
+```
+
+复习与抽查自检（第四周 R1–R3）。调度规则：建记录 1 天后第一次到期，mastered 进一段（1→3→7 天，满 3 段毕业），fuzzy 原地 1 天后重试，forgot 回第一段。新记录要等明天才到期，自检先在 IDEA 的 H2 控制台里把一条记录「拨到期」造数（R 换成学习记录 id）：
+
+```sql
+update learn_record set next_review_at = current_timestamp where id = R;
+```
+
+```bash
+# 1) 今日待复习（按孩子过滤）→ 应有刚拨到期的那条
+curl "localhost:8080/api/learn/review/today?memberId=C" -H "Authorization: T"
+# 2) 抽查出题 → items 与待复习条目一一对应（带 llmLogId；若 note 说改用兜底题，是模型出题降级，题仍齐）
+curl -X POST localhost:8080/api/learn/review/quiz -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"memberId":C,"limit":5}'
+# 3) 简报计数：生成今日简报 → 「孩子昨日学习」段末应有「今日待复习：N 条」（数据源已是 learn_record，不再靠双写记忆）
+curl -X POST localhost:8080/api/briefings/generate -H "Authorization: T"
+# 4) 回记 mastered → 201，record 的 reviewStage 应 +1、nextReviewAt 顺延（0→1 段为 +3 天）；再查今日列表，该条应已消失
+curl -X POST localhost:8080/api/learn/review/log -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"recordId":R,"result":"mastered"}'
+# 5) result 乱填 → 400（改 result 为 good 试）；不存在的 recordId → 404
+curl -X POST localhost:8080/api/learn/review/log -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"recordId":999999,"result":"mastered"}'
 ```
 
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：

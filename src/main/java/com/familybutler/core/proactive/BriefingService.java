@@ -23,7 +23,9 @@ import java.util.stream.Collectors;
  *
  * 三段的数据口径（都以简报日期 D 为锚，时区 Asia/Shanghai）：
  *   今日工作：请求者本人未完成、到期时间在 D 当天结束前的待办（含逾期）
- *   孩子昨日学习：D-1 全天、scope=learn 且「全家可见 或 归属成员是孩子」的记忆
+ *   孩子昨日学习：D-1 全天、归属成员是孩子的 learn_record（第四周 R3 起从双写记忆切到学习记录直查，
+ *     双写已下线；此处底座直查学习模块的表是已知的耦合取舍，换来数据源单一、记忆列表不再被学习条目刷屏），
+ *     段末附「今日待复习」条数（stage 未毕业且 D 当天结束前到期）
  *   昨晚睡眠：D-1 12:00 ~ D 12:00、scope=health 且「本人 或 全家可见」的记忆（覆盖睡前记与晨起补记两种录入习惯）
  * 后续接 LLM 只换拼装后的润色环节，取数口径与落表结构不动。
  */
@@ -82,18 +84,28 @@ public class BriefingService {
         OffsetDateTime from = date.minusDays(1).atStartOfDay(ZONE).toOffsetDateTime();
         OffsetDateTime to = date.atStartOfDay(ZONE).toOffsetDateTime();
         List<TimedText> rows = jdbc.query(
-                "select mem.nickname as nickname, m.content as content from memory_item m "
-                        + "join member mem on mem.id = m.member_id "
-                        + "where m.family_id = ? and m.scope = 'learn' "
-                        + "and m.created_at >= ? and m.created_at < ? "
-                        + "and (m.visibility = 'family' or mem.role = 'child') "
-                        + "and (m.expires_at is null or m.expires_at > current_timestamp) order by m.id",
+                "select mem.nickname as nickname, lr.content as content from learn_record lr "
+                        + "join member mem on mem.id = lr.member_id "
+                        + "where lr.family_id = ? and mem.role = 'child' "
+                        + "and lr.created_at >= ? and lr.created_at < ? order by lr.id",
                 (rs, i) -> new TimedText(rs.getString("nickname"), rs.getString("content")),
                 familyId, from, to);
+        OffsetDateTime endOfDay = date.plusDays(1).atStartOfDay(ZONE).toOffsetDateTime();
+        Long dueCount = jdbc.queryForObject(
+                "select count(*) from learn_record where family_id = ? and review_stage < 3 "
+                        + "and (next_review_at is null or next_review_at < ?)",
+                Long.class, familyId, endOfDay);
+        StringBuilder section = new StringBuilder();
         if (rows.isEmpty()) {
-            return "昨日暂无学习记录。";
+            section.append("昨日暂无学习记录。");
+        } else {
+            section.append(rows.stream().map(r -> "- " + r.nickname() + "：" + r.content())
+                    .collect(Collectors.joining("\n")));
         }
-        return rows.stream().map(r -> "- " + r.nickname() + "：" + r.content()).collect(Collectors.joining("\n"));
+        if (dueCount != null && dueCount > 0) {
+            section.append("\n- 今日待复习：").append(dueCount).append(" 条");
+        }
+        return section.toString();
     }
 
     private String sleepSection(long familyId, long requesterMemberId, LocalDate date, Map<Long, String> nicknames) {

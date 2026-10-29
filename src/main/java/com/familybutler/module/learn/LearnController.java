@@ -69,7 +69,6 @@ public class LearnController {
 
     Map<String, Object> resultBody(LearnService.CreateResult result) {
         Map<String, Object> body = recordBody(result.record());
-        body.put("briefingMemoryId", result.briefingMemoryId());
         if (result.llmLogId() != null) {
             body.put("llmLogId", result.llmLogId());
         }
@@ -90,6 +89,8 @@ public class LearnController {
         body.put("content", r.content());
         body.put("detail", parseDetail(r.detailJson()));
         body.put("source", r.source());
+        body.put("reviewStage", r.reviewStage());
+        body.put("nextReviewAt", r.nextReviewAt());
         body.put("createdAt", r.createdAt());
         return body;
     }
