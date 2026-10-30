@@ -3,6 +3,8 @@ package com.familybutler.core.account;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,10 +26,13 @@ public class AuthController {
 
     private final AccountService accountService;
     private final WechatAuthService wechatAuthService;
+    private final boolean devLoginEnabled;
 
-    public AuthController(AccountService accountService, WechatAuthService wechatAuthService) {
+    public AuthController(AccountService accountService, WechatAuthService wechatAuthService,
+                          @Value("${butler.auth.dev-login-enabled:false}") boolean devLoginEnabled) {
         this.accountService = accountService;
         this.wechatAuthService = wechatAuthService;
+        this.devLoginEnabled = devLoginEnabled;
     }
 
     public record LoginRequest(
@@ -51,6 +56,30 @@ public class AuthController {
         body.put("tokenValue", StpUtil.getTokenValue());
         body.put("memberId", result.memberId());
         body.put("familyId", result.familyId());
+        return ResponseEntity.ok(body);
+    }
+
+    public record DevLoginRequest(
+            @NotBlank String identifier) {
+    }
+
+    /**
+     * 开发期免密登录：只填登录名直接发 token。开关 butler.auth.dev-login-enabled 默认关，
+     * 仅 application-local.yml 打开；关着时本接口 403 明示。上线前必须确认 prod 未开启。
+     */
+    @PostMapping("/dev-login")
+    public ResponseEntity<Map<String, Object>> devLogin(@RequestBody @Valid DevLoginRequest request) {
+        if (!devLoginEnabled) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "免密登录未开启");
+        }
+        AccountService.LoginResult result = accountService.loginByIdentifier(request.identifier());
+        StpUtil.login(result.memberId());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("tokenName", StpUtil.getTokenName());
+        body.put("tokenValue", StpUtil.getTokenValue());
+        body.put("memberId", result.memberId());
+        body.put("familyId", result.familyId());
+        body.put("devLogin", true);
         return ResponseEntity.ok(body);
     }
 

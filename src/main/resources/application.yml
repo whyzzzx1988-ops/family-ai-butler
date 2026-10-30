@@ -36,6 +36,9 @@ sa-token:
   is-log: false
 
 butler:
+  auth:
+    # 开发期免密登录总开关：默认关；仅 application-local.yml 打开，上线前必须确认关闭
+    dev-login-enabled: false
   llm:
     # 密钥只走环境变量，绝不写进仓库
     deepseek-api-key: ${DEEPSEEK_API_KEY:}

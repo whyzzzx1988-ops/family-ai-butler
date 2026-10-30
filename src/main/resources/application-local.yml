@@ -18,3 +18,8 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+butler:
+  auth:
+    # 本地调试免密登录：只填登录名即可进（仅 local profile 生效；prod 默认关，切勿改 base 配置打开）
+    dev-login-enabled: true

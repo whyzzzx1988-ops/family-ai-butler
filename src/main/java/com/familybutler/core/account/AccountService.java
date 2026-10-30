@@ -98,6 +98,27 @@ public class AccountService {
         return new LoginResult(rows.get(0).memberId(), rows.get(0).familyId());
     }
 
+    /**
+     * 免密登录（开发期）：只按 identifier 查密码账号，不校验密码。
+     * 只供 AuthController 的 /api/auth/dev-login 在开关打开时调用；开关默认关、仅 local profile 开，
+     * 上线前必须确认关闭——任何人知道登录名即可进账号，切勿在 prod 打开。
+     */
+    public LoginResult loginByIdentifier(String identifier) {
+        List<CredentialRow> rows = jdbc.query(
+                """
+                select a.member_id as member_id, a.credential_hash as credential_hash, m.family_id as family_id
+                from account a join member m on m.id = a.member_id
+                where a.login_type = 'password' and a.identifier = ?
+                """,
+                (rs, i) -> new CredentialRow(rs.getLong("member_id"), rs.getLong("family_id"),
+                        rs.getString("credential_hash")),
+                identifier);
+        if (rows.isEmpty()) {
+            throw ApiException.unauthorized("登录名不存在");
+        }
+        return new LoginResult(rows.get(0).memberId(), rows.get(0).familyId());
+    }
+
     /** 微信登录：按 openid 查已绑定的成员，未绑定返回 null。openid 只存 account.identifier（login_type='wechat'），不进日志。 */
     public MemberView findWechatMember(String openid) {
         List<MemberView> rows = jdbc.query(
@@ -132,7 +153,7 @@ public class AccountService {
     public String wechatOpenidOf(long memberId) {
         List<String> rows = jdbc.query(
                 "select identifier from account where login_type = 'wechat' and member_id = ?",
-                (rs, i) -> rs.getString(1), memberId);
+                (rs, i) => rs.getString(1), memberId);
         return rows.isEmpty() ? null : rows.get(0);
     }
 

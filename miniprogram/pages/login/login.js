@@ -73,6 +73,26 @@ Page({
     );
   },
 
+  // 开发期免密登录：只填登录名；后端 local 开关没开时会被 403 拦下并提示
+  doDevLogin() {
+    if (this.data.busy) return;
+    if (!this.data.identifier) {
+      wx.showToast({ title: '请填登录名', icon: 'none' });
+      return;
+    }
+    this.setData({ busy: true });
+    api.devLogin(this.data.identifier).then(
+      (data) => {
+        this.setData({ busy: false });
+        this.onLoggedIn(data);
+      },
+      (err) => {
+        this.setData({ busy: false });
+        wx.showToast({ title: err.message, icon: 'none', duration: 3000 });
+      }
+    );
+  },
+
   // 绑定：code 一次性，必须重新 wx.login 取新 code，并同带账号密码过一次校验
   doBind() {
     if (this.data.busy) return;

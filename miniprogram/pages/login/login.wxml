@@ -13,4 +13,7 @@
     <button wx:if="{{needBind}}" class="btn-primary" loading="{{busy}}" bindtap="doBind">绑定并登录</button>
     <button class="{{needBind ? 'btn-ghost' : 'btn-primary'}}" loading="{{busy}}" bindtap="doPasswordLogin" style="margin-top: 12rpx;">账号密码登录</button>
   </view>
+
+  <button class="btn-ghost" loading="{{busy}}" bindtap="doDevLogin" style="margin-top: 24rpx;">免密直接登录（开发期）</button>
+  <view class="muted" style="margin-top: 12rpx;">只填上面的登录名就能进，仅本地调试后端开启时可用；正式上线前会关闭。</view>
 </view>

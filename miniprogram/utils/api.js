@@ -66,6 +66,10 @@ function passwordLogin(identifier, pwdValue) {
   payload['pass' + 'word'] = pwdValue;
   return request('/api/auth/login', { method: 'POST', data: payload });
 }
+// 开发期免密登录：只传登录名；后端开关默认关、仅 local 打开，关着时后端 403 明示
+function devLogin(identifier) {
+  return request('/api/auth/dev-login', { method: 'POST', data: { identifier } });
+}
 function me() {
   return request('/api/auth/me');
 }
@@ -110,7 +114,7 @@ function notifyTest(template) {
 
 module.exports = {
   getToken, request, uploadVoice,
-  wechatLogin, passwordLogin, me,
+  wechatLogin, passwordLogin, devLogin, me,
   getBriefing, generateBriefing,
   postText, toMemory, toLearn,
   listRecords, reviewToday, quiz, logReview,
