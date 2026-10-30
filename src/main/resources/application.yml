@@ -57,6 +57,9 @@ butler:
     audio-dir: ${BUTLER_AUDIO_DIR:./data/audio}
   briefing:
     morning-cron: "0 0 7 * * *"
+  learn:
+    # 复习到期提醒（第七周 N1）：每晚 19:00 检查孩子名下到期条目，有才给户主推订阅消息
+    review-remind-cron: "0 0 19 * * *"
   wechat:
     # 小程序 AppID/Secret 只走环境变量；没配时微信登录 503、密码登录不受影响
     appid: ${WECHAT_APPID:}

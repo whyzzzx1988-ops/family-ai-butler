@@ -216,6 +216,9 @@ curl -X POST localhost:8080/api/auth/wechat -H "Content-Type: application/json" 
 # 3) 订阅管道：先在公众平台申请模板、后端配 WECHAT_TEMPLATE_BRIEFING_ID（模板字段需含 thing1/date2，不同模板改 WechatController 测试数据的键），
 #    小程序简报页点「订阅晨报提醒」授权一次，再调下面接口 → ok=true 表示管道通；ok=false 时 message 会写明卡在哪一步
 curl -X POST localhost:8080/api/wechat/notify-test -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
+# 4) 自动触发（第七周 N1）：晨报 07:00 生成后自动尝试推送（模板=BRIEFING）；每晚 19:00 若孩子名下有到期未复习条目，
+#    给户主推复习提醒（模板=REVIEW，cron 可调 butler.learn.review-remind-cron）。模板未配时自动跳过、只记日志，简报与复习数据不受影响；
+#    订阅消息一次授权只能推一条，想天天收需要用户在小程序里定期再点订阅（微信平台规则）。
 ```
 
 健康记录自检（第六周 B1–B4，健康模块第一件）。红线：只记录与管理，不解读。简报睡眠段数据源已切到 `health_record`（只读本人记录），用药计划进晨报「今日用药」段：
