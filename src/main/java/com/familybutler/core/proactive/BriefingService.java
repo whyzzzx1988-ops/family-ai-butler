@@ -13,8 +13,12 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +34,7 @@ import java.util.stream.Collectors;
  *     记忆切到健康记录直查，同 R3 耦合取舍；健康隐私优先，v0 只读本人，不再含全家可见的他人记录；
  *     窗口覆盖睡前记与晨起补记两种录入习惯）
  *   今日用药：请求者本人在册的 health_record（kind=medication）全部列出，有才出现这一段，删记录即停
+ *   周报（type=weekly，第七周 N3）：窗口 [date-7d, date)，v0 只含「本周睡眠」一段（事实汇总，见 weeklyContent）
  * 后续接 LLM 只换拼装后的润色环节，取数口径与落表结构不动。
  */
 @Service
@@ -58,6 +63,9 @@ public class BriefingService {
                 (rs, i) -> Map.entry(rs.getLong("id"), rs.getString("nickname")),
                 familyId).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+        if ("weekly".equals(type)) {
+            return upsert(familyId, date, type, weeklyContent(familyId, requesterMemberId, date));
+        }
         String content = "# 全家简报 · " + date + "\n\n"
                 + "## 今日工作\n" + workSection(requesterMemberId, date) + "\n\n"
                 + "## 孩子昨日学习\n" + learnSection(familyId, date) + "\n\n"
@@ -67,6 +75,74 @@ public class BriefingService {
             content += "\n## 今日用药\n" + meds + "\n";
         }
         return upsert(familyId, date, type, content);
+    }
+
+    /**
+     * 周报（第七周 N3，type=weekly）：统计窗口 [date-7d, date)，周一生成即覆盖上周一至周日。
+     * v0 只含睡眠段（请求者本人，只汇总事实：记录晚数 / 平均 · 最长 · 最短时长 / 逐晚明细，不解读不评价）；
+     * 其他段（学习/工作）后续按 N4 等逐段加入同一份周报。
+     */
+    private String weeklyContent(long familyId, long requesterMemberId, LocalDate date) {
+        return "# 全家周报 · " + date.minusDays(7) + " ~ " + date.minusDays(1) + "\n\n"
+                + "## 本周睡眠\n" + sleepWeekSection(familyId, requesterMemberId, date) + "\n";
+    }
+
+    private record SleepRow(OffsetDateTime createdAt, String content, String detailJson) {
+    }
+
+    private static final Pattern DURATION_HOURS =
+            Pattern.compile("\"durationHours\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)");
+
+    private String sleepWeekSection(long familyId, long memberId, LocalDate date) {
+        OffsetDateTime from = date.minusDays(7).atStartOfDay(ZONE).toOffsetDateTime();
+        OffsetDateTime to = date.atStartOfDay(ZONE).toOffsetDateTime();
+        List<SleepRow> rows = jdbc.query(
+                "select created_at, content, detail_json from health_record "
+                        + "where family_id = ? and kind = 'sleep' and member_id = ? "
+                        + "and created_at >= ? and created_at < ? order by created_at",
+                (rs, i) -> new SleepRow(rs.getObject("created_at", OffsetDateTime.class),
+                        rs.getString("content"), rs.getString("detail_json")),
+                familyId, memberId, from, to);
+        if (rows.isEmpty()) {
+            return "本周暂无睡眠记录。";
+        }
+        Map<LocalDate, List<SleepRow>> byNight = new LinkedHashMap<>();
+        List<Double> durations = new ArrayList<>();
+        for (SleepRow row : rows) {
+            LocalDate night = row.createdAt().atZoneSameInstant(ZONE).toLocalDate();
+            byNight.computeIfAbsent(night, k -> new ArrayList<>()).add(row);
+            if (row.detailJson() != null) {
+                Matcher m = DURATION_HOURS.matcher(row.detailJson());
+                if (m.find()) {
+                    durations.add(Double.parseDouble(m.group(1)));
+                }
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("- 记录 ").append(byNight.size()).append(" 晚");
+        if (!durations.isEmpty()) {
+            double sum = durations.stream().mapToDouble(Double::doubleValue).sum();
+            double max = durations.stream().mapToDouble(Double::doubleValue).max().orElse(0);
+            double min = durations.stream().mapToDouble(Double::doubleValue).min().orElse(0);
+            sb.append("，其中 ").append(durations.size()).append(" 晚有时长\n");
+            sb.append("- 平均时长 ").append(fmtHours(sum / durations.size()))
+                    .append(" 小时 · 最长 ").append(fmtHours(max))
+                    .append(" · 最短 ").append(fmtHours(min)).append("\n");
+        } else {
+            sb.append("\n");
+        }
+        DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("MM-dd");
+        byNight.forEach((night, nightRows) -> nightRows.forEach(r ->
+                sb.append("- ").append(dayFmt.format(night)).append("：").append(r.content()).append("\n")));
+        return sb.toString().strip();
+    }
+
+    /** 小时数展示：整数去掉 .0，其余保留一位小数。 */
+    private static String fmtHours(double v) {
+        if (v == Math.rint(v)) {
+            return String.valueOf((long) v);
+        }
+        return String.format("%.1f", v);
     }
 
     private String workSection(long requesterMemberId, LocalDate date) {

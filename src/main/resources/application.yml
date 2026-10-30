@@ -57,9 +57,14 @@ butler:
     audio-dir: ${BUTLER_AUDIO_DIR:./data/audio}
   briefing:
     morning-cron: "0 0 7 * * *"
+    # 周报（第七周 N3）：周一 07:30 生成 type=weekly，覆盖上周一至周日
+    weekly-cron: "0 30 7 * * MON"
   learn:
     # 复习到期提醒（第七周 N1）：每晚 19:00 检查孩子名下到期条目，有才给户主推订阅消息
     review-remind-cron: "0 0 19 * * *"
+  health:
+    # 用药按点推送（第七周 N3）：每分钟比对在册用药计划的 remindTime
+    medication-cron: "0 * * * * *"
   wechat:
     # 小程序 AppID/Secret 只走环境变量；没配时微信登录 503、密码登录不受影响
     appid: ${WECHAT_APPID:}
@@ -67,3 +72,4 @@ butler:
     # 订阅消息模板 ID（公众平台申请后填；thing/date 字段名以所申请模板为准，不同模板需同步改 WechatController 的测试数据键）
     template-briefing-id: ${WECHAT_TEMPLATE_BRIEFING_ID:}
     template-review-id: ${WECHAT_TEMPLATE_REVIEW_ID:}
+    template-medication-id: ${WECHAT_TEMPLATE_MEDICATION_ID:}

@@ -39,7 +39,12 @@ public class WechatController {
         String templateId;
         Map<String, String> data = new LinkedHashMap<>();
         String page;
-        if ("review".equals(kind)) {
+        if ("medication".equals(kind)) {
+            templateId = properties.getTemplateMedicationId();
+            data.put("thing1", "该吃药了：测试药品一片");
+            data.put("date2", LocalDate.now().toString());
+            page = "pages/briefing/briefing";
+        } else if ("review".equals(kind)) {
             templateId = properties.getTemplateReviewId();
             data.put("thing1", "今日有学习内容待复习");
             data.put("date2", LocalDate.now().toString());

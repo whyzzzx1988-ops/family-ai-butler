@@ -44,25 +44,44 @@ public class BriefingScheduler {
                 }
                 briefingService.generate(familyId, owner, today, "morning");
                 log.info("家庭 {} 晨间简报已生成（{}）", familyId, today);
-                notifyOwner(familyId, owner, today);
+                notifyOwner(familyId, owner, today, "今日全家简报已生成");
             } catch (Exception e) {
                 log.warn("家庭 {} 晨间简报生成失败", familyId, e);
             }
         }
     }
 
-    private void notifyOwner(long familyId, long owner, LocalDate today) {
+    /** 周报定时任务（第七周 N3）：周一 07:30 生成 type=weekly（覆盖上周一至周日），生成后同样尝试推送。 */
+    @Scheduled(cron = "${butler.briefing.weekly-cron:0 30 7 * * MON}", zone = "Asia/Shanghai")
+    public void generateWeeklyBriefings() {
+        LocalDate today = LocalDate.now(BriefingService.ZONE);
+        for (Long familyId : briefingService.allFamilyIds()) {
+            try {
+                Long owner = briefingService.familyOwner(familyId);
+                if (owner == null) {
+                    continue;
+                }
+                briefingService.generate(familyId, owner, today, "weekly");
+                log.info("家庭 {} 全家周报已生成（{}）", familyId, today);
+                notifyOwner(familyId, owner, today, "上周全家周报已生成");
+            } catch (Exception e) {
+                log.warn("家庭 {} 全家周报生成失败", familyId, e);
+            }
+        }
+    }
+
+    private void notifyOwner(long familyId, long owner, LocalDate today, String thing) {
         String templateId = wechatProperties.getTemplateBriefingId();
         if (templateId == null || templateId.isBlank()) {
             return;
         }
         try {
             WechatNotifyService.SendResult result = wechatNotifyService.sendToMember(owner, templateId,
-                    Map.of("thing1", "今日全家简报已生成", "date2", today.toString()),
+                    Map.of("thing1", thing, "date2", today.toString()),
                     "pages/briefing/briefing");
-            log.info("家庭 {} 晨报微信推送：ok={} {}", familyId, result.ok(), result.message());
+            log.info("家庭 {} 简报微信推送：ok={} {}", familyId, result.ok(), result.message());
         } catch (Exception e) {
-            log.warn("家庭 {} 晨报微信推送异常（不影响简报）", familyId, e);
+            log.warn("家庭 {} 简报微信推送异常（不影响简报）", familyId, e);
         }
     }
 }

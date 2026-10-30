@@ -16,6 +16,7 @@ public class WechatProperties {
     private String secret = "";
     private String templateBriefingId = "";
     private String templateReviewId = "";
+    private String templateMedicationId = "";
 
     public boolean isConfigured() {
         return appid != null && !appid.isBlank() && secret != null && !secret.isBlank();
@@ -51,5 +52,13 @@ public class WechatProperties {
 
     public void setTemplateReviewId(String templateReviewId) {
         this.templateReviewId = templateReviewId;
+    }
+
+    public String getTemplateMedicationId() {
+        return templateMedicationId;
+    }
+
+    public void setTemplateMedicationId(String templateMedicationId) {
+        this.templateMedicationId = templateMedicationId;
     }
 }

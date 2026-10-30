@@ -237,6 +237,13 @@ curl -X POST localhost:8080/api/inbox/E/to-health -H "Authorization: T" -H "Cont
 curl -X POST "localhost:8080/api/briefings/generate?date=明天日期" -H "Authorization: T"
 # 5) 删除第 2 条用药计划（R 换成其 id）→ 再生成简报，「今日用药」段应消失；跨家庭 id → 404
 curl -X DELETE localhost:8080/api/health/records/R -H "Authorization: T"
+# 6) 睡眠周报（第七周 N3）：生成 type=weekly（date 为截止日，统计其前 7 天）→ 「本周睡眠」段应有记录晚数/平均/最长/最短与逐晚明细，只报事实不评价；
+#    正式节奏为每周一 07:30 自动生成并推送（butler.briefing.weekly-cron）
+curl -X POST "localhost:8080/api/briefings/generate?date=下周一日期&type=weekly" -H "Authorization: T"
+curl "localhost:8080/api/briefings?date=下周一日期&type=weekly" -H "Authorization: T"
+# 7) 用药按点推送（第七周 N3）：后端配 WECHAT_TEMPLATE_MEDICATION_ID（用药模板，字段同为 thing1/date2），把第 2 条计划的 remindTime
+#    改成当前时间的下一分钟（重录一条即可），归属成员在小程序里订阅一次 → 到点应收到推送；也可先用 notify-test 的 medication 打通管道
+curl -X POST localhost:8080/api/wechat/notify-test -H "Authorization: T" -H "Content-Type: application/json" -d '{"template":"medication"}'
 ```
 
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
