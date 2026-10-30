@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  *     记忆切到健康记录直查，同 R3 耦合取舍；健康隐私优先，v0 只读本人，不再含全家可见的他人记录；
  *     窗口覆盖睡前记与晨起补记两种录入习惯）
  *   今日用药：请求者本人在册的 health_record（kind=medication）全部列出，有才出现这一段，删记录即停
- *   周报（type=weekly，第七周 N3）：窗口 [date-7d, date)，v0 只含「本周睡眠」一段（事实汇总，见 weeklyContent）
+ *   周报（type=weekly，第七周 N3 起）：窗口 [date-7d, date)，含「本周睡眠」（N3）与「孩子本周学习」（N4 家长周报）两段事实汇总（见 weeklyContent）
  * 后续接 LLM 只换拼装后的润色环节，取数口径与落表结构不动。
  */
 @Service
@@ -78,13 +78,53 @@ public class BriefingService {
     }
 
     /**
-     * 周报（第七周 N3，type=weekly）：统计窗口 [date-7d, date)，周一生成即覆盖上周一至周日。
-     * v0 只含睡眠段（请求者本人，只汇总事实：记录晚数 / 平均 · 最长 · 最短时长 / 逐晚明细，不解读不评价）；
-     * 其他段（学习/工作）后续按 N4 等逐段加入同一份周报。
+     * 周报（第七周 N3 起，type=weekly）：统计窗口 [date-7d, date)，周一生成即覆盖上周一至周日。
+     * 两段都只汇总事实、不解读不评价：本周睡眠（请求者本人：记录晚数 / 平均 · 最长 · 最短时长 / 逐晚明细）、
+     * 孩子本周学习（N4 家长周报：逐个孩子的新增 / 复习与自评分布 / 当前待复习）。
      */
     private String weeklyContent(long familyId, long requesterMemberId, LocalDate date) {
         return "# 全家周报 · " + date.minusDays(7) + " ~ " + date.minusDays(1) + "\n\n"
-                + "## 本周睡眠\n" + sleepWeekSection(familyId, requesterMemberId, date) + "\n";
+                + "## 本周睡眠\n" + sleepWeekSection(familyId, requesterMemberId, date) + "\n\n"
+                + "## 孩子本周学习\n" + learnWeekSection(familyId, date) + "\n";
+    }
+
+    /** 家长周报段（N4）：家里每个孩子一行事实统计；没有孩子成员时明说。 */
+    private String learnWeekSection(long familyId, LocalDate date) {
+        OffsetDateTime from = date.minusDays(7).atStartOfDay(ZONE).toOffsetDateTime();
+        OffsetDateTime to = date.atStartOfDay(ZONE).toOffsetDateTime();
+        List<Map.Entry<Long, String>> children = jdbc.query(
+                "select id, nickname from member where family_id = ? and role = 'child' order by id",
+                (rs, i) -> Map.entry(rs.getLong("id"), rs.getString("nickname")),
+                familyId);
+        if (children.isEmpty()) {
+            return "家里还没有孩子成员。";
+        }
+        List<String> lines = new ArrayList<>();
+        for (Map.Entry<Long, String> child : children) {
+            long childId = child.getKey();
+            Long added = jdbc.queryForObject(
+                    "select count(*) from learn_record where family_id = ? and member_id = ? "
+                            + "and created_at >= ? and created_at < ?",
+                    Long.class, familyId, childId, from, to);
+            Map<String, Long> byResult = new LinkedHashMap<>();
+            jdbc.query(
+                    "select result, count(*) as c from review_log where family_id = ? and member_id = ? "
+                            + "and created_at >= ? and created_at < ? group by result",
+                    (rs, i) -> Map.entry(rs.getString("result"), rs.getLong("c")),
+                    familyId, childId, from, to)
+                    .forEach(e -> byResult.put(e.getKey(), e.getValue()));
+            long reviewed = byResult.values().stream().mapToLong(Long::longValue).sum();
+            Long dueNow = jdbc.queryForObject(
+                    "select count(*) from learn_record where family_id = ? and member_id = ? "
+                            + "and review_stage < 3 and (next_review_at is null or next_review_at < ?)",
+                    Long.class, familyId, childId, to);
+            lines.add("- " + child.getValue() + "：新增 " + added + " 条 · 复习 " + reviewed + " 次"
+                    + "（记住了 " + byResult.getOrDefault("mastered", 0L)
+                    + "、模糊 " + byResult.getOrDefault("fuzzy", 0L)
+                    + "、忘了 " + byResult.getOrDefault("forgot", 0L) + "）"
+                    + " · 当前待复习 " + dueNow + " 条");
+        }
+        return String.join("\n", lines);
     }
 
     private record SleepRow(OffsetDateTime createdAt, String content, String detailJson) {

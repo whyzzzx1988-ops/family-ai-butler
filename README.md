@@ -205,6 +205,9 @@ curl -X POST localhost:8080/api/learn/review/log -H "Authorization: T" -H "Conte
 # 5) result 乱填 → 400（改 result 为 good 试）；不存在的 recordId → 404
 curl -X POST localhost:8080/api/learn/review/log -H "Authorization: T" -H "Content-Type: application/json" \
   -d '{"recordId":999999,"result":"mastered"}'
+# 6) 家长周报（第七周 N4）：生成 type=weekly（date 为截止日，统计其前 7 天）→ 「孩子本周学习」段应逐个孩子列出
+#    新增条数、复习次数与自评分布、当前待复习条数，与上面几步的操作对得上；只报事实不评价
+curl -X POST "localhost:8080/api/briefings/generate?date=下周一日期&type=weekly" -H "Authorization: T"
 ```
 
 微信登录与订阅消息自检（第五周 A1/A3）。后端先配环境变量 `WECHAT_APPID` / `WECHAT_SECRET`（你自己的小程序，在公众平台「开发管理 → 开发设置」里看）再重启后端；小程序工程打开方式见 `miniprogram/README.md`。curl 只能验到「未配置/参数校验」层，真 code 只能从小程序里 wx.login 拿（一次性、5 分钟有效），完整链路在开发者工具里走登录页：
@@ -216,8 +219,9 @@ curl -X POST localhost:8080/api/auth/wechat -H "Content-Type: application/json" 
 # 3) 订阅管道：先在公众平台申请模板、后端配 WECHAT_TEMPLATE_BRIEFING_ID（模板字段需含 thing1/date2，不同模板改 WechatController 测试数据的键），
 #    小程序简报页点「订阅晨报提醒」授权一次，再调下面接口 → ok=true 表示管道通；ok=false 时 message 会写明卡在哪一步
 curl -X POST localhost:8080/api/wechat/notify-test -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
-# 4) 自动触发（第七周 N1）：晨报 07:00 生成后自动尝试推送（模板=BRIEFING）；每晚 19:00 若孩子名下有到期未复习条目，
-#    给户主推复习提醒（模板=REVIEW，cron 可调 butler.learn.review-remind-cron）。模板未配时自动跳过、只记日志，简报与复习数据不受影响；
+# 4) 自动触发（第七周 N1，N4 升级）：晨报 07:00 生成后自动尝试推送（模板=BRIEFING）；每晚 19:00 若孩子名下有到期未复习条目，
+#    复习提醒（模板=REVIEW，cron 可调 butler.learn.review-remind-cron）推两路：孩子绑了微信推孩子本人，另给户主一条全家汇总。
+#    模板未配时自动跳过、只记日志，简报与复习数据不受影响；
 #    订阅消息一次授权只能推一条，想天天收需要用户在小程序里定期再点订阅（微信平台规则）。
 ```
 
