@@ -26,7 +26,10 @@ import java.util.stream.Collectors;
  *   孩子昨日学习：D-1 全天、归属成员是孩子的 learn_record（第四周 R3 起从双写记忆切到学习记录直查，
  *     双写已下线；此处底座直查学习模块的表是已知的耦合取舍，换来数据源单一、记忆列表不再被学习条目刷屏），
  *     段末附「今日待复习」条数（stage 未毕业且 D 当天结束前到期）
- *   昨晚睡眠：D-1 12:00 ~ D 12:00、scope=health 且「本人 或 全家可见」的记忆（覆盖睡前记与晨起补记两种录入习惯）
+ *   昨晚睡眠：D-1 12:00 ~ D 12:00、请求者本人的 health_record（kind=sleep；第六周 B3 起从 scope=health
+ *     记忆切到健康记录直查，同 R3 耦合取舍；健康隐私优先，v0 只读本人，不再含全家可见的他人记录；
+ *     窗口覆盖睡前记与晨起补记两种录入习惯）
+ *   今日用药：请求者本人在册的 health_record（kind=medication）全部列出，有才出现这一段，删记录即停
  * 后续接 LLM 只换拼装后的润色环节，取数口径与落表结构不动。
  */
 @Service
@@ -59,6 +62,10 @@ public class BriefingService {
                 + "## 今日工作\n" + workSection(requesterMemberId, date) + "\n\n"
                 + "## 孩子昨日学习\n" + learnSection(familyId, date) + "\n\n"
                 + "## 昨晚睡眠\n" + sleepSection(familyId, requesterMemberId, date, nicknames) + "\n";
+        String meds = medicationSection(familyId, requesterMemberId);
+        if (!meds.isEmpty()) {
+            content += "\n## 今日用药\n" + meds + "\n";
+        }
         return upsert(familyId, date, type, content);
     }
 
@@ -112,18 +119,26 @@ public class BriefingService {
         OffsetDateTime from = date.minusDays(1).atTime(12, 0).atZone(ZONE).toOffsetDateTime();
         OffsetDateTime to = date.atTime(12, 0).atZone(ZONE).toOffsetDateTime();
         List<TimedText> rows = jdbc.query(
-                "select member_id, content from memory_item "
-                        + "where family_id = ? and scope = 'health' "
-                        + "and created_at >= ? and created_at < ? "
-                        + "and (member_id = ? or visibility = 'family') "
-                        + "and (expires_at is null or expires_at > current_timestamp) order by id",
+                "select member_id, content from health_record "
+                        + "where family_id = ? and kind = 'sleep' and member_id = ? "
+                        + "and created_at >= ? and created_at < ? order by id",
                 (rs, i) -> new TimedText(nicknames.getOrDefault(rs.getLong("member_id"), "家人"),
                         rs.getString("content")),
-                familyId, from, to, requesterMemberId);
+                familyId, requesterMemberId, from, to);
         if (rows.isEmpty()) {
             return "暂无昨晚睡眠记录。";
         }
         return rows.stream().map(r -> "- " + r.nickname() + "：" + r.content()).collect(Collectors.joining("\n"));
+    }
+
+    /** 今日用药：请求者本人在册的全部用药计划（无时间窗，靠删除停用）；无计划时返回空串、不出段。 */
+    private String medicationSection(long familyId, long requesterMemberId) {
+        List<String> rows = jdbc.query(
+                "select content from health_record "
+                        + "where family_id = ? and kind = 'medication' and member_id = ? order by id",
+                (rs, i) -> rs.getString("content"),
+                familyId, requesterMemberId);
+        return rows.stream().map(c -> "- " + c).collect(Collectors.joining("\n"));
     }
 
     private BriefingView upsert(long familyId, LocalDate date, String type, String contentMd) {

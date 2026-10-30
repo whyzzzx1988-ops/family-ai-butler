@@ -16,7 +16,7 @@ import java.util.List;
  *   asr_processing   语音已存，正在转写（同步转写时只是中间态）
  *   asr_unconfigured 没配 DASHSCOPE_API_KEY，音频已存、转写待补
  *   asr_failed       转写失败（原因记在服务端日志），音频仍保留可重跑
- * parsed_type 语义（W3 规则打标、第三周扩 learn，见 parseType）：minutes / reminder / memory / learn / unknown。
+ * parsed_type 语义（W3 规则打标、第三周扩 learn、第六周扩 health，见 parseType）：minutes / reminder / memory / learn / health / unknown。
  */
 @Service
 public class InboxService {
@@ -62,12 +62,14 @@ public class InboxService {
     }
 
     /**
-     * 解析分发 v0（W3，补 D6 欠账；第三周 L3 扩 learn 一档）：纯规则打标，可解释、可复核，不做 Agent 编排。
+     * 解析分发 v0（W3，补 D6 欠账；第三周 L3 扩 learn、第六周 B2 扩 health）：纯规则打标，可解释、可复核，不做 Agent 编排。
      * 按优先级从高到低匹配（先具体后宽泛，「记得提醒我」归 reminder 不归 memory，
-     * 「记住这个单词」归 memory 不归 learn）：
+     * 「记住这个单词」归 memory 不归 learn，「提醒我吃药」归 reminder 不归 health，
+     * 「睡前背单词」归 learn 不归 health）：
      *   含「纪要 / 会议记录」→ minutes；含「提醒 / 别忘了 / 别忘记」→ reminder；
      *   含「记住 / 记一下 / 记下来 / 备忘」→ memory；
      *   含「错题 / 做错 / 错了 / 背单词 / 生词 / 单词 / 复习」→ learn；
+     *   含「吃药 / 用药 / 血压 / 血糖 / 体重 / 体温 / 睡了 / 睡眠 / 失眠 / 熬夜」→ health；
      *   其余 → unknown（保持原样等后续版本）。
      */
     public static String parseType(String text) {
@@ -87,6 +89,12 @@ public class InboxService {
                 || text.contains("背单词") || text.contains("生词") || text.contains("单词")
                 || text.contains("复习")) {
             return "learn";
+        }
+        if (text.contains("吃药") || text.contains("用药") || text.contains("血压")
+                || text.contains("血糖") || text.contains("体重") || text.contains("体温")
+                || text.contains("睡了") || text.contains("睡眠") || text.contains("失眠")
+                || text.contains("熬夜")) {
+            return "health";
         }
         return "unknown";
     }

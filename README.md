@@ -218,6 +218,24 @@ curl -X POST localhost:8080/api/auth/wechat -H "Content-Type: application/json" 
 curl -X POST localhost:8080/api/wechat/notify-test -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
 ```
 
+健康记录自检（第六周 B1–B4，健康模块第一件）。红线：只记录与管理，不解读。简报睡眠段数据源已切到 `health_record`（只读本人记录），用药计划进晨报「今日用药」段：
+
+```bash
+# 1) 直录一条睡眠 → 201，kind=sleep，detail 里应有 durationHours（值 7，规则抽出，不走模型）
+curl -X POST localhost:8080/api/health/records -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"content":"昨晚 11 点睡，睡了 7 小时"}'
+# 2) 结构化录一条用药计划 → 201，content 应自动拼成「维生素D 每日一片（每天 08:00）」
+curl -X POST localhost:8080/api/health/records -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"kind":"medication","detail":{"medicine":"维生素D","dosage":"每日一片","remindTime":"08:00"}}'
+# 3) inbox 链路：发一句健康的话 → parsedType 应为 health；再 to-health 转入（E 换成事件 id）
+curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" -d '{"text":"今天体重 70 公斤"}'
+curl -X POST localhost:8080/api/inbox/E/to-health -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
+# 4) 简报合流：生成「明天」的简报（date 是 query 参数）→ 睡眠段应有第 1 条（窗口 D-1 12:00 起），并多出「今日用药」段含第 2 条
+curl -X POST "localhost:8080/api/briefings/generate?date=明天日期" -H "Authorization: T"
+# 5) 删除第 2 条用药计划（R 换成其 id）→ 再生成简报，「今日用药」段应消失；跨家庭 id → 404
+curl -X DELETE localhost:8080/api/health/records/R -H "Authorization: T"
+```
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash

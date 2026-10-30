@@ -1,0 +1,15 @@
+-- 第六周 B1：健康记录表（PG 版）。管理向：睡眠/用药/测量/备注，只记录与提醒，不诊断不开方（总方案红线）。
+-- member_id 是记录归属成员（记录是「关于谁」的），event_id 溯源 inbox 事件（可空，直录时为空）。
+-- detail_json 存结构化字段：睡眠为规则抽出的 durationHours；用药为录入方显式给的 medicine/dosage/remindTime。
+create table health_record (
+    id          bigserial primary key,
+    family_id   bigint        not null references family(id),
+    member_id   bigint        not null references member(id),
+    event_id    bigint        references inbox_event(id),
+    kind        varchar(20)   not null,  -- sleep / medication / measure / note
+    content     varchar(2000) not null,
+    detail_json text,
+    source      varchar(20)   not null default 'text',  -- text / voice（沿事件来源）
+    created_at  timestamptz   not null default now()
+);
+create index idx_health_record_family on health_record(family_id, member_id, created_at);
