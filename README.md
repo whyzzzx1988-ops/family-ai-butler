@@ -207,6 +207,17 @@ curl -X POST localhost:8080/api/learn/review/log -H "Authorization: T" -H "Conte
   -d '{"recordId":999999,"result":"mastered"}'
 ```
 
+微信登录与订阅消息自检（第五周 A1/A3）。后端先配环境变量 `WECHAT_APPID` / `WECHAT_SECRET`（你自己的小程序，在公众平台「开发管理 → 开发设置」里看）再重启后端；小程序工程打开方式见 `miniprogram/README.md`。curl 只能验到「未配置/参数校验」层，真 code 只能从小程序里 wx.login 拿（一次性、5 分钟有效），完整链路在开发者工具里走登录页：
+
+```bash
+# 1) 未配 WECHAT_* 时 → 503 明示（密码登录不受影响）
+curl -X POST localhost:8080/api/auth/wechat -H "Content-Type: application/json" -d '{"code":"x"}'
+# 2) 配好后在开发者工具里打开小程序：首次登录 → 展开绑定表单 → 填网页端登录名/密码 → 绑定成功进简报页；杀掉重开 → 免密直登
+# 3) 订阅管道：先在公众平台申请模板、后端配 WECHAT_TEMPLATE_BRIEFING_ID（模板字段需含 thing1/date2，不同模板改 WechatController 测试数据的键），
+#    小程序简报页点「订阅晨报提醒」授权一次，再调下面接口 → ok=true 表示管道通；ok=false 时 message 会写明卡在哪一步
+curl -X POST localhost:8080/api/wechat/notify-test -H "Authorization: T" -H "Content-Type: application/json" -d '{}'
+```
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash

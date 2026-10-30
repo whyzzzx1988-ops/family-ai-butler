@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="card">
+    <view class="title">今日待复习（{{due.length}}）</view>
+    <view wx:if="{{!due.length}}" class="muted">今天没有到期要复习的，去玩吧。</view>
+    <view wx:for="{{due}}" wx:key="id" class="rowline">
+      <text class="tag">{{item.kindLabel}}</text>
+      <text class="flex">{{item.content}}</text>
+      <text class="muted">第{{item.reviewStage}}段</text>
+    </view>
+    <button class="btn-primary" style="margin-top: 16rpx;" bindtap="startQuiz">开始抽查</button>
+  </view>
+
+  <view wx:if="{{quizItems}}" class="card">
+    <view class="title">抽查</view>
+    <view wx:if="{{quizNote}}" class="muted" style="margin-bottom: 12rpx;">{{quizNote}}</view>
+    <view wx:for="{{quizItems}}" wx:key="recordId" class="quiz">
+      <view><text class="tag">{{item.kindLabel}}</text> {{item.question}}</view>
+      <view wx:if="{{item.showRef}}" class="ref">参考：{{item.reference}}</view>
+      <view wx:if="{{!item.done}}" class="row" style="margin-top: 10rpx;">
+        <button class="btn-ghost mini" data-idx="{{index}}" bindtap="toggleRef">看参考</button>
+        <button class="btn-ghost mini" data-idx="{{index}}" data-result="mastered" bindtap="grade">记住了</button>
+        <button class="btn-ghost mini" data-idx="{{index}}" data-result="fuzzy" bindtap="grade">模糊</button>
+        <button class="btn-ghost mini" data-idx="{{index}}" data-result="forgot" bindtap="grade">忘了</button>
+      </view>
+      <view wx:else class="muted" style="margin-top: 10rpx;">已自评：{{item.done === 'mastered' ? '记住了' : (item.done === 'fuzzy' ? '模糊' : '忘了')}}，下次到期已顺延</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">学习记录</view>
+    <view class="row" style="margin-bottom: 12rpx;">
+      <button class="chip {{filter === '' ? 'on' : ''}}" data-kind="" bindtap="setFilter">全部</button>
+      <button class="chip {{filter === 'word' ? 'on' : ''}}" data-kind="word" bindtap="setFilter">单词</button>
+      <button class="chip {{filter === 'mistake' ? 'on' : ''}}" data-kind="mistake" bindtap="setFilter">错题</button>
+      <button class="chip {{filter === 'note' ? 'on' : ''}}" data-kind="note" bindtap="setFilter">笔记</button>
+    </view>
+    <view wx:if="{{!records.length}}" class="muted">还没有记录，去「说一句」里说一道错题或一个单词试试。</view>
+    <view wx:for="{{records}}" wx:key="id" class="rowline">
+      <text class="tag">{{item.kindLabel}}</text>
+      <text class="flex">{{item.content}}</text>
+    </view>
+  </view>
+</view>

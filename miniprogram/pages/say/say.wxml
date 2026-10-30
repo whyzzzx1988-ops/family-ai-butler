@@ -1,0 +1,20 @@
+<view class="container">
+  <view class="title">说一句话，全家管家记下来</view>
+  <view class="muted" style="margin-bottom: 20rpx;">开会录音、记住一件事、孩子的一道错题——说出来就行，它会自己分类。</view>
+
+  <view class="card">
+    <textarea class="input" placeholder="例如：明天下午三点和王总开会，记得带合同" value="{{text}}" bindinput="onTextInput" maxlength="2000" auto-height />
+    <button class="btn-primary" loading="{{busy}}" bindtap="submitText">记下来</button>
+    <button class="{{recording ? 'btn-recording' : 'btn-ghost'}}" style="margin-top: 16rpx;" bindtap="toggleRecord">{{recording ? '录音中…点这里结束' : '按一下开始说话'}}</button>
+  </view>
+
+  <view wx:if="{{lastEvent}}" class="card">
+    <view class="title">已收下 · {{lastEvent.label}}</view>
+    <view>{{lastEvent.text}}</view>
+    <view wx:if="{{lastEvent.status}}" class="muted" style="margin-top: 8rpx;">{{lastEvent.status}}</view>
+    <view class="row" style="margin-top: 16rpx;">
+      <button class="btn-ghost small" bindtap="toMemory">存入记忆</button>
+      <button class="btn-ghost small" bindtap="toLearn">转学习记录</button>
+    </view>
+  </view>
+</view>

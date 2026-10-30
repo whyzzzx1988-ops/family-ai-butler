@@ -1,0 +1,22 @@
+.input {
+  width: 100%;
+  min-height: 160rpx;
+  background: #f2f1ed;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  margin-bottom: 16rpx;
+}
+.btn-recording {
+  background: #d64541;
+  color: #ffffff;
+  border-radius: 12rpx;
+}
+.row {
+  display: flex;
+  gap: 16rpx;
+}
+.small {
+  flex: 1;
+  font-size: 28rpx;
+}

@@ -23,14 +23,23 @@ import java.util.Map;
 public class AuthController {
 
     private final AccountService accountService;
+    private final WechatAuthService wechatAuthService;
 
-    public AuthController(AccountService accountService) {
+    public AuthController(AccountService accountService, WechatAuthService wechatAuthService) {
         this.accountService = accountService;
+        this.wechatAuthService = wechatAuthService;
     }
 
     public record LoginRequest(
             @NotBlank String identifier,
             @NotBlank String password) {
+    }
+
+    /** 小程序登录：code 必填；未绑定的微信首次须同带 identifier/password 完成绑定（见 WechatAuthService）。 */
+    public record WechatLoginRequest(
+            @NotBlank String code,
+            String identifier,
+            String password) {
     }
 
     @PostMapping("/login")
@@ -42,6 +51,20 @@ public class AuthController {
         body.put("tokenValue", StpUtil.getTokenValue());
         body.put("memberId", result.memberId());
         body.put("familyId", result.familyId());
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/wechat")
+    public ResponseEntity<Map<String, Object>> wechat(@RequestBody @Valid WechatLoginRequest request) {
+        WechatAuthService.LoginOutcome outcome =
+                wechatAuthService.loginOrBind(request.code(), request.identifier(), request.password());
+        StpUtil.login(outcome.member().id());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("tokenName", StpUtil.getTokenName());
+        body.put("tokenValue", StpUtil.getTokenValue());
+        body.put("memberId", outcome.member().id());
+        body.put("familyId", outcome.member().familyId());
+        body.put("bound", outcome.justBound());
         return ResponseEntity.ok(body);
     }
 

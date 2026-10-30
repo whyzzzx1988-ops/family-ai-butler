@@ -48,7 +48,7 @@ butler:
         output-per-million: 8.0
   asr:
     # 百炼 DashScope API Key 只走环境变量；没配时语音事件落 asr_unconfigured 状态，音频照常保存
-    api-key: <redacted>
+    api-key: ${DASHSCOPE_API_KEY:}
     ws-url: ${ASR_WS_URL:wss://dashscope.aliyuncs.com/api-ws/v1/inference}
     model: ${ASR_MODEL:paraformer-realtime-v2}
     timeout-seconds: 30
@@ -57,3 +57,10 @@ butler:
     audio-dir: ${BUTLER_AUDIO_DIR:./data/audio}
   briefing:
     morning-cron: "0 0 7 * * *"
+  wechat:
+    # 小程序 AppID/Secret 只走环境变量；没配时微信登录 503、密码登录不受影响
+    appid: ${WECHAT_APPID:}
+    secret: ${WECHAT_SECRET:}
+    # 订阅消息模板 ID（公众平台申请后填；thing/date 字段名以所申请模板为准，不同模板需同步改 WechatController 的测试数据键）
+    template-briefing-id: ${WECHAT_TEMPLATE_BRIEFING_ID:}
+    template-review-id: ${WECHAT_TEMPLATE_REVIEW_ID:}

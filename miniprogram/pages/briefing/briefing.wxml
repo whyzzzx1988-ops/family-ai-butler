@@ -1,0 +1,17 @@
+<view class="container">
+  <view class="title">{{date}} 全家简报</view>
+
+  <view wx:if="{{loading}}" class="muted">加载中…</view>
+
+  <view wx:elif="{{lines}}" class="card">
+    <view wx:for="{{lines}}" wx:key="index" class="line {{item.cls}}">{{item.text}}</view>
+  </view>
+
+  <view wx:else class="card">
+    <view class="muted" style="margin-bottom: 16rpx;">今天的简报还没生成。</view>
+    <button class="btn-primary" loading="{{generating}}" bindtap="generate">生成今日简报</button>
+  </view>
+
+  <button class="btn-ghost" bindtap="subscribe">订阅晨报提醒</button>
+  <view class="muted" style="margin-top: 12rpx;">定时简报由后端每天 07:00 自动生成；订阅消息需先在公众平台申请模板并配置模板 ID。</view>
+</view>

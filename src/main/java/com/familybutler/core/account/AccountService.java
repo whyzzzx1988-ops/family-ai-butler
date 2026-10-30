@@ -98,6 +98,44 @@ public class AccountService {
         return new LoginResult(rows.get(0).memberId(), rows.get(0).familyId());
     }
 
+    /** 微信登录：按 openid 查已绑定的成员，未绑定返回 null。openid 只存 account.identifier（login_type='wechat'），不进日志。 */
+    public MemberView findWechatMember(String openid) {
+        List<MemberView> rows = jdbc.query(
+                """
+                select m.id as id, m.family_id as family_id, m.role as role, m.nickname as nickname, m.avatar as avatar
+                from account a join member m on m.id = a.member_id
+                where a.login_type = 'wechat' and a.identifier = ?
+                """,
+                (rs, i) -> new MemberView(rs.getLong("id"), rs.getLong("family_id"),
+                        rs.getString("role"), rs.getString("nickname"), rs.getString("avatar")),
+                openid);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    /** 把 openid 绑到成员：openid 已绑别人、或该成员已有微信账号，都 409（防串号）。 */
+    @Transactional
+    public void bindWechat(long memberId, String openid) {
+        if (findWechatMember(openid) != null) {
+            throw ApiException.conflict("该微信已绑定其他家庭成员");
+        }
+        Integer mine = jdbc.queryForObject(
+                "select count(*) from account where login_type = 'wechat' and member_id = ?",
+                Integer.class, memberId);
+        if (mine != null && mine > 0) {
+            throw ApiException.conflict("该成员已绑定微信");
+        }
+        jdbc.update("insert into account(member_id, login_type, identifier) values (?, 'wechat', ?)",
+                memberId, openid);
+    }
+
+    /** 成员绑定的 openid（订阅消息投递用），未绑定返回 null。 */
+    public String wechatOpenidOf(long memberId) {
+        List<String> rows = jdbc.query(
+                "select identifier from account where login_type = 'wechat' and member_id = ?",
+                (rs, i) => rs.getString(1), memberId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     public MemberView getMember(long memberId) {
         List<MemberView> rows = jdbc.query(
                 "select id, family_id, role, nickname, avatar from member where id = ?",

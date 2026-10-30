@@ -1,0 +1,48 @@
+.rowline {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #f0efec;
+}
+.tag {
+  background: #fff1e6;
+  color: #e8590c;
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+.flex {
+  flex: 1;
+}
+.row {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 26rpx;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: #f2f1ed;
+}
+.chip.on {
+  background: #e8590c;
+  color: #ffffff;
+}
+.mini {
+  font-size: 26rpx;
+  padding: 0 18rpx;
+}
+.quiz {
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0efec;
+}
+.ref {
+  margin-top: 8rpx;
+  background: #f8f7f4;
+  border-radius: 8rpx;
+  padding: 12rpx;
+  color: #55524d;
+}

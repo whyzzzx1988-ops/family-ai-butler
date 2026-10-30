@@ -1,0 +1,14 @@
+.line {
+  line-height: 1.7;
+  word-break: break-all;
+}
+.h1 {
+  font-size: 38rpx;
+  font-weight: 700;
+  margin: 8rpx 0;
+}
+.h {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin: 16rpx 0 6rpx;
+}
