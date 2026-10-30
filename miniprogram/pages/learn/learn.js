@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const config = require('../../utils/config');
 
 const KIND_LABEL = { word: '单词', mistake: '错题', note: '笔记' };
 
@@ -79,5 +80,24 @@ Page({
       (rows) => this.setData({ due: (rows || []).map(decorate) }),
       () => {}
     );
+  },
+
+  // 订阅复习提醒（N2 补入口）：每天 19:00 后端推给孩子本人与户主；模式同简报页订阅
+  subscribeReview() {
+    const tmplId = config.TEMPLATE_REVIEW_ID;
+    if (!tmplId) {
+      wx.showToast({ title: '复习模板未配置（见 utils/config.js）', icon: 'none', duration: 3000 });
+      return;
+    }
+    wx.requestSubscribeMessage({
+      tmplIds: [tmplId],
+      success: () => {
+        api.notifyTest('review').then(
+          (res) => wx.showToast({ title: res.ok ? '测试消息已发' : res.message, icon: 'none', duration: 3000 }),
+          (err) => wx.showToast({ title: err.message, icon: 'none', duration: 3000 })
+        );
+      },
+      fail: () => wx.showToast({ title: '未完成订阅授权', icon: 'none' }),
+    });
   },
 });

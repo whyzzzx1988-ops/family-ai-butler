@@ -13,5 +13,6 @@
   </view>
 
   <button class="btn-ghost" bindtap="subscribe">订阅晨报提醒</button>
-  <view class="muted" style="margin-top: 12rpx;">定时简报由后端每天 07:00 自动生成；订阅消息需先在公众平台申请模板并配置模板 ID。</view>
+  <button class="btn-ghost" bindtap="subscribeMore" style="margin-top: 12rpx;">订阅用药 / 待办提醒</button>
+  <view class="muted" style="margin-top: 12rpx;">定时简报由后端每天 07:00 自动生成；订阅消息需先在公众平台申请模板并配置模板 ID。复习提醒的订阅在「学习」页。</view>
 </view>

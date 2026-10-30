@@ -40,4 +40,7 @@
       <text class="flex">{{item.content}}</text>
     </view>
   </view>
+
+  <button class="btn-ghost" bindtap="subscribeReview">订阅复习提醒</button>
+  <view class="muted" style="margin-top: 12rpx;">每天 19:00 有到期复习时推送；订阅消息需先在公众平台申请模板并配置模板 ID。</view>
 </view>

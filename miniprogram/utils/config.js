@@ -8,5 +8,13 @@ const BASE_URL = 'http://127.0.0.1:8080';
 // 留空时页面上的订阅按钮会提示未配置
 const TEMPLATE_BRIEFING_ID = '';
 const TEMPLATE_REVIEW_ID = '';
+const TEMPLATE_MEDICATION_ID = '';
+const TEMPLATE_TODO_ID = '';
 
-module.exports = { BASE_URL, TEMPLATE_BRIEFING_ID, TEMPLATE_REVIEW_ID };
+module.exports = {
+  BASE_URL,
+  TEMPLATE_BRIEFING_ID,
+  TEMPLATE_REVIEW_ID,
+  TEMPLATE_MEDICATION_ID,
+  TEMPLATE_TODO_ID,
+};

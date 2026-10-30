@@ -78,4 +78,18 @@ Page({
       fail: () => wx.showToast({ title: '未完成订阅授权', icon: 'none' }),
     });
   },
+
+  // 订阅用药/待办提醒（N2 补入口）：两个模板一次授权（单次上限 3 个）；推送由后端按点触发
+  subscribeMore() {
+    const ids = [config.TEMPLATE_MEDICATION_ID, config.TEMPLATE_TODO_ID].filter((x) => x);
+    if (!ids.length) {
+      wx.showToast({ title: '用药/待办模板未配置（见 utils/config.js）', icon: 'none', duration: 3000 });
+      return;
+    }
+    wx.requestSubscribeMessage({
+      tmplIds: ids,
+      success: () => wx.showToast({ title: '已订阅用药与待办提醒', icon: 'none', duration: 3000 }),
+      fail: () => wx.showToast({ title: '未完成订阅授权', icon: 'none' }),
+    });
+  },
 });
