@@ -42,7 +42,8 @@ public class MinutesController {
         this.currentUser = currentUser;
     }
 
-    public record CreateMinutesRequest(@NotNull Long eventId) {
+    /** template 可选（第七周 N5）：standard 默认 / weekly 周会 / client 客户拜访，乱填 400。 */
+    public record CreateMinutesRequest(@NotNull Long eventId, String template) {
     }
 
     public record ConfirmItemRequest(@NotNull Integer index, OffsetDateTime dueAt) {
@@ -54,7 +55,8 @@ public class MinutesController {
     @PostMapping("/minutes")
     public ResponseEntity<Map<String, Object>> create(@RequestBody @Valid CreateMinutesRequest request) {
         AccountService.MemberView me = currentUser.requireMember();
-        MinutesService.GenerateResult result = minutesService.generate(me.familyId(), me.id(), request.eventId());
+        MinutesService.GenerateResult result = minutesService.generate(me.familyId(), me.id(),
+                request.eventId(), request.template());
         Map<String, Object> body = minutesBody(result.minutes());
         body.put("model", result.model());
         body.put("tokensIn", result.tokensIn());
@@ -110,6 +112,7 @@ public class MinutesController {
         body.put("eventId", m.eventId());
         body.put("title", m.title());
         body.put("contentMd", m.contentMd());
+        body.put("template", m.template());
         body.put("todoCandidates", candidateBodies(m.todoCandidates()));
         body.put("todoConfirmedIndexes", m.todoConfirmedIndexes());
         body.put("createdAt", m.createdAt());
@@ -123,6 +126,7 @@ public class MinutesController {
         body.put("memberId", m.memberId());
         body.put("eventId", m.eventId());
         body.put("title", m.title());
+        body.put("template", m.template());
         body.put("todoCandidateCount", m.todoCandidates().size());
         body.put("todoConfirmedCount", m.todoConfirmedIndexes().size());
         body.put("createdAt", m.createdAt());

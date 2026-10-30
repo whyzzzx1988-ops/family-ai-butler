@@ -343,14 +343,16 @@ public class LearnService {
                 next = now.plusDays(1);
             }
         }
+        final int stageToPersist = stage;
+        final OffsetDateTime nextToPersist = next;
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                     "update learn_record set review_stage = ?, next_review_at = ? where id = ?");
-            ps.setInt(1, stage);
-            if (next == null) {
+            ps.setInt(1, stageToPersist);
+            if (nextToPersist == null) {
                 ps.setNull(2, Types.TIMESTAMP_WITH_TIMEZONE);
             } else {
-                ps.setObject(2, next);
+                ps.setObject(2, nextToPersist);
             }
             ps.setLong(3, recordId);
             return ps;
