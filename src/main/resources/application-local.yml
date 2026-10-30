@@ -23,3 +23,13 @@ butler:
   auth:
     # 本地调试免密登录：只填登录名即可进（仅 local profile 生效；prod 默认关，切勿改 base 配置打开）
     dev-login-enabled: true
+  seed:
+    # 本地固定种子（仅 local，DevSeedInitializer）：启动自动建演示家庭，
+    # H2 内存库重启后不用再手动调接口建号。与 README 演示数据一致，改这里即可换固定账号。
+    family-name: 我的家
+    owner-nickname: 宇哥
+    identifier: yuge
+    password: dev123456
+    spouse-nickname: 媳妇
+    spouse-identifier: xifu
+    child-nickname: 儿子

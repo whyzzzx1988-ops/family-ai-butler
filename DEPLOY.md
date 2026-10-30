@@ -79,3 +79,4 @@ docker compose pull && docker compose up -d --build   # 拉新代码后升级
 - 订阅消息是「一次订阅推一次」：用户需在小程序里点订阅按钮授权，晨报页/学习页都放了订阅入口
 - 管理页 `/admin.html` 凭家庭账号登录，数据只出本家庭；公网暴露后建议给账号设强密码
 - **免密登录红线**：`butler.auth.dev-login-enabled` 是开发期开关（只填登录名就能进账号），默认关、只有 local 配置开；上线前务必确认 prod 没有打开它，打开状态下绝不能对公网提供服务
+- **种子账号红线**：`DevSeedInitializer` 只在 local Profile 加载，启动自动建演示家庭（`yuge` / `xifu`，密码 `dev123456`）；prod 不加载本类，上线后须确认库里没有这套演示账号

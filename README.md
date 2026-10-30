@@ -23,7 +23,7 @@ app + Postgres(pgvector) + Redis 全在容器里，数据落库不丢，迁移�
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-也可以什么都不带直接 Run/Debug：`application.yml` 已把默认 Profile 设为 local，没指定时自动走这条路（Docker 部署由 compose 显式注入 prod，不受影响）。此模式数据库是 H2 内存库（迁移走 `db/migration-h2`，重启清零），token 存内存，不需要本机装 Postgres 和 Redis。H2 控制台：http://localhost:8080/h2-console（JDBC URL 填 `jdbc:h2:mem:butler`）。
+也可以什么都不带直接 Run/Debug：`application.yml` 已把默认 Profile 设为 local，没指定时自动走这条路（Docker 部署由 compose 显式注入 prod，不受影响）。此模式数据库是 H2 内存库（迁移走 `db/migration-h2`，重启清零），token 存内存，不需要本机装 Postgres 和 Redis。H2 控制台：http://localhost:8080/h2-console（JDBC URL 填 `jdbc:h2:mem:butler`）。local 启动时还会自动初始化一套固定演示家庭（户主 `yuge` / 配偶 `xifu`，密码都是 `dev123456`，另有一个无账号的孩子成员「儿子」），重启后直接登录即可，不用再手动建号；配置在 `application-local.yml` 的 `butler.seed`，仅 local 生效。也因此，下方 D3 自检第 1 步在 local 下再调会返回 409（登录名已存在），属预期，日常调试从第 3 步登录验起即可。
 
 IDEA 里看数据：新建 **H2** 数据源（不要建 PostgreSQL 的，本地没有 5432 在跑），URL 填 `jdbc:h2:tcp://localhost:9092/mem:butler`，用户 `sa`、密码留空。local 模式启动应用时会自动在 9092 端口起 H2 TCP 服务，连的就是应用正在用的同一个内存库；应用没启动时连不上属正常。
 
