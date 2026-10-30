@@ -40,6 +40,9 @@ import java.util.Set;
  * W2 候选口径：生成纪要同轮再调一次网关抽候选，结构化 JSON 存 meeting_note.todo_candidates 附属字段；
  * 负责人/到期只存原文线索（ownerHint/dueHint），不猜人、不把「下周三」这类表述擅自解析成日期——
  * 确认时由用户按需给 dueAt。抽取失败不拖垮纪要：纪要照常落表，候选为空并在响应里明示原因。
+ *
+ * 第七周 N5 模板：generate 可传 template（standard/weekly/client，见 TEMPLATES），
+ * 只换整理结构与段标题，防呆与候选口径不变；模板名落 meeting_note.template 以便溯源。
  */
 @Service
 public class MinutesService {
@@ -57,6 +60,38 @@ public class MinutesService {
             ## 讨论要点
             讨论要点用无序列表逐条列出，其余段落用简洁短句。不要输出结构之外的解释或寒暄。
             """;
+
+    /** 周会模板（第七周 N5）：进展 / 计划 / 风险三段，规则同标准模板（只整理不编造）。 */
+    private static final String WEEKLY_PROMPT = """
+            你是一名周会纪要助手。只根据用户给出的会议转写文本整理纪要，\
+            不编造转写中没有出现的人名、时间、数字和结论；某部分信息不足时，在该段写明「转写未提及」。
+            输出 Markdown，严格按以下结构：
+            第一行：# <纪要标题，不超过 30 个字，概括周会主题>
+            随后空一行，依次输出三个段落，段标题原样使用：
+            ## 本周进展
+            ## 下周计划
+            ## 风险与阻塞
+            每段用无序列表逐条列出。不要输出结构之外的解释或寒暄。
+            """;
+
+    /** 客户拜访模板（第七周 N5）：需求 / 承诺 / 跟进三段，规则同标准模板。 */
+    private static final String CLIENT_PROMPT = """
+            你是一名客户拜访纪要助手。只根据用户给出的拜访转写文本整理纪要，\
+            不编造转写中没有出现的客户名称、人名、时间、数字和承诺；某部分信息不足时，在该段写明「转写未提及」。
+            输出 Markdown，严格按以下结构：
+            第一行：# <纪要标题，不超过 30 个字，概括拜访主题>
+            随后空一行，依次输出三个段落，段标题原样使用：
+            ## 客户需求
+            ## 我方承诺
+            ## 后续跟进
+            每段用无序列表逐条列出。不要输出结构之外的解释或寒暄。
+            """;
+
+    /** 纪要模板（N5）：standard 标准三段式（默认）/ weekly 周会 / client 客户拜访。 */
+    public static final java.util.Map<String, String> TEMPLATES = java.util.Map.of(
+            "standard", SYSTEM_PROMPT,
+            "weekly", WEEKLY_PROMPT,
+            "client", CLIENT_PROMPT);
 
     private static final String EXTRACT_SYSTEM_PROMPT = """
             你是一名待办抽取助手。只根据用户给出的会议转写文本，抽取其中明确提出的待办事项（接下来要做的事），\
@@ -86,7 +121,7 @@ public class MinutesService {
     }
 
     public record MinutesView(long id, long familyId, long memberId, long eventId,
-                              String title, String contentMd,
+                              String title, String contentMd, String template,
                               List<TodoCandidate> todoCandidates, List<Integer> todoConfirmedIndexes,
                               String createdAt) {
     }
@@ -103,6 +138,16 @@ public class MinutesService {
     }
 
     public GenerateResult generate(long familyId, long memberId, long eventId) {
+        return generate(familyId, memberId, eventId, null);
+    }
+
+    /** template 不传 = standard；只影响整理结构，待办候选抽取与防呆口径不变。 */
+    public GenerateResult generate(long familyId, long memberId, long eventId, String template) {
+        String resolvedTemplate = template == null || template.isBlank() ? "standard" : template.trim();
+        String systemPrompt = TEMPLATES.get(resolvedTemplate);
+        if (systemPrompt == null) {
+            throw ApiException.badRequest("template 只能是 standard / weekly / client");
+        }
         InboxService.EventView event = inboxService.getEvent(eventId);
         if (event == null || event.familyId() != familyId) {
             throw ApiException.notFound("收件箱事件不存在或不属于本家庭");
@@ -118,7 +163,7 @@ public class MinutesService {
         }
 
         String transcript = event.text().trim();
-        LlmGateway.ChatResult result = llmGateway.chat(familyId, "work", SYSTEM_PROMPT,
+        LlmGateway.ChatResult result = llmGateway.chat(familyId, "work", systemPrompt,
                 "会议转写文本如下：\n\n" + transcript);
         String contentMd = result.content() == null ? "" : result.content().trim();
         if (contentMd.isBlank()) {
@@ -144,15 +189,16 @@ public class MinutesService {
         String candidatesJson = serializeCandidates(candidates);
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    "insert into meeting_note(family_id, member_id, event_id, title, content_md, todo_candidates) "
-                            + "values (?, ?, ?, ?, ?, ?)",
+                    "insert into meeting_note(family_id, member_id, event_id, title, content_md, template, todo_candidates) "
+                            + "values (?, ?, ?, ?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, familyId);
             ps.setLong(2, memberId);
             ps.setLong(3, eventId);
             ps.setString(4, title);
             ps.setString(5, contentMd);
-            ps.setString(6, candidatesJson);
+            ps.setString(6, resolvedTemplate);
+            ps.setString(7, candidatesJson);
             return ps;
         }, keyHolder);
         Number key = keyHolder.getKey();
@@ -202,7 +248,7 @@ public class MinutesService {
 
     public MinutesView findByEventId(long eventId) {
         List<MinutesView> rows = jdbc.query(
-                "select id, family_id, member_id, event_id, title, content_md, todo_candidates, "
+                "select id, family_id, member_id, event_id, title, content_md, template, todo_candidates, "
                         + "todo_confirmed_indexes, created_at from meeting_note where event_id = ?",
                 (rs, i) -> mapRow(rs), eventId);
         return rows.isEmpty() ? null : rows.get(0);
@@ -210,7 +256,7 @@ public class MinutesService {
 
     public MinutesView getById(long id) {
         List<MinutesView> rows = jdbc.query(
-                "select id, family_id, member_id, event_id, title, content_md, todo_candidates, "
+                "select id, family_id, member_id, event_id, title, content_md, template, todo_candidates, "
                         + "todo_confirmed_indexes, created_at from meeting_note where id = ?",
                 (rs, i) -> mapRow(rs), id);
         if (rows.isEmpty()) {
@@ -223,7 +269,7 @@ public class MinutesService {
     public List<MinutesView> listByFamily(long familyId, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         return jdbc.query(
-                "select id, family_id, member_id, event_id, title, content_md, todo_candidates, "
+                "select id, family_id, member_id, event_id, title, content_md, template, todo_candidates, "
                         + "todo_confirmed_indexes, created_at from meeting_note "
                         + "where family_id = ? order by id desc limit ?",
                 (rs, i) -> mapRow(rs), familyId, safeLimit);
@@ -232,7 +278,7 @@ public class MinutesService {
     /** 家庭内读纪要：跨家庭与不存在统一 404。 */
     public MinutesView getByIdForFamily(long id, long familyId) {
         List<MinutesView> rows = jdbc.query(
-                "select id, family_id, member_id, event_id, title, content_md, todo_candidates, "
+                "select id, family_id, member_id, event_id, title, content_md, template, todo_candidates, "
                         + "todo_confirmed_indexes, created_at from meeting_note where id = ? and family_id = ?",
                 (rs, i) -> mapRow(rs), id, familyId);
         if (rows.isEmpty()) {
@@ -359,6 +405,7 @@ public class MinutesService {
     private MinutesView mapRow(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new MinutesView(rs.getLong("id"), rs.getLong("family_id"), rs.getLong("member_id"),
                 rs.getLong("event_id"), rs.getString("title"), rs.getString("content_md"),
+                rs.getString("template"),
                 readCandidates(rs.getString("todo_candidates")),
                 readIndexes(rs.getString("todo_confirmed_indexes")),
                 rs.getString("created_at"));

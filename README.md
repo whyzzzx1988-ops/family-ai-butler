@@ -110,6 +110,15 @@ curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-T
 # 5) 不存在的事件 id → 404
 curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-Type: application/json" \
   -d '{"eventId":999999}'
+# 6) 纪要模板（第七周 N5）：另造一条周会口吻的事件 E2，用 weekly 生成 → 段标题应为 ## 本周进展 / ## 下周计划 / ## 风险与阻塞，
+#    响应 template=weekly；template 乱填（如 daily）→ 400
+curl -X POST localhost:8080/api/work/minutes -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"eventId":E2,"template":"weekly"}'
+# 7) 待办到期推送（第七周 N5）：后端配 WECHAT_TEMPLATE_TODO_ID（待办模板，字段 thing1/date2），建一条 20 分钟后到期的待办，
+#    负责人在小程序订阅一次 → 10 分钟内应收到推送；收到后查该待办 due_notified_at 已回填、不会重复推。
+#    管道可先用 notify-test 的 {"template":"todo"} 打通
+curl -X POST localhost:8080/api/todos -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"title":"自检待办","dueAt":"20 分钟后的 ISO 时间"}'
 ```
 
 在 IDEA 数据源里应能看到新表 `meeting_note`，纪要行 event_id=E 与来源事件一一对应。
