@@ -1,5 +1,7 @@
 package com.familybutler.core.llm;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import com.familybutler.core.account.ApiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -179,7 +181,7 @@ public class LlmGateway {
             ps.setString(8, status);
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         return key == null ? -1 : key.longValue();
     }
 }

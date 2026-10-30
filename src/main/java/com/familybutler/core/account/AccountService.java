@@ -1,5 +1,7 @@
 package com.familybutler.core.account;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -220,7 +222,7 @@ public class AccountService {
             }
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("插入未返回主键: " + sql);
         }

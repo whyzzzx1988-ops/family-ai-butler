@@ -1,5 +1,7 @@
 package com.familybutler.module.work;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import com.familybutler.core.account.ApiException;
 import com.familybutler.core.inbox.InboxService;
 import com.familybutler.core.llm.LlmGateway;
@@ -201,7 +203,7 @@ public class MinutesService {
             ps.setString(7, candidatesJson);
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("meeting_note 插入未返回主键");
         }

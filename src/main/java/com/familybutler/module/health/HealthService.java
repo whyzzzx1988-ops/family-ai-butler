@@ -1,5 +1,7 @@
 package com.familybutler.module.health;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import com.familybutler.core.account.AccountService;
 import com.familybutler.core.account.ApiException;
 import com.familybutler.core.inbox.InboxService;
@@ -248,7 +250,7 @@ public class HealthService {
             }
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("插入未返回主键: " + sql);
         }

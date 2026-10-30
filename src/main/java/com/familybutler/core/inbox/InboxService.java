@@ -1,5 +1,7 @@
 package com.familybutler.core.inbox;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -48,7 +50,7 @@ public class InboxService {
             ps.setString(7, status);
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("inbox_event 插入未返回主键");
         }

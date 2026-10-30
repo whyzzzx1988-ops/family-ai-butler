@@ -1,5 +1,7 @@
 package com.familybutler.core.memory;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import com.familybutler.core.account.ApiException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -71,7 +73,7 @@ public class MemoryService {
             }
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("memory_item 插入未返回主键");
         }

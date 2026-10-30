@@ -1,5 +1,7 @@
 package com.familybutler.core.proactive;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import com.familybutler.core.account.ApiException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -274,7 +276,7 @@ public class BriefingService {
                 ps.setString(4, contentMd);
                 return ps;
             }, keyHolder);
-            Number key = keyHolder.getKey();
+            Number key = GeneratedKey.id(keyHolder);
             if (key == null) {
                 throw new IllegalStateException("briefing 插入未返回主键");
             }

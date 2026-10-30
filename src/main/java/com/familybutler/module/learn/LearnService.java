@@ -1,5 +1,7 @@
 package com.familybutler.module.learn;
 
+import com.familybutler.core.jdbc.GeneratedKey;
+
 import com.familybutler.core.account.AccountService;
 import com.familybutler.core.account.ApiException;
 import com.familybutler.core.inbox.InboxService;
@@ -183,7 +185,7 @@ public class LearnService {
             ps.setObject(9, firstReviewAt);
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("learn_record 插入未返回主键");
         }
@@ -324,7 +326,7 @@ public class LearnService {
             ps.setString(4, result);
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
+        Number key = GeneratedKey.id(keyHolder);
         if (key == null) {
             throw new IllegalStateException("review_log 插入未返回主键");
         }
