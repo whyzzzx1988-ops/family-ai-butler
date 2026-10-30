@@ -153,7 +153,7 @@ public class AccountService {
     public String wechatOpenidOf(long memberId) {
         List<String> rows = jdbc.query(
                 "select identifier from account where login_type = 'wechat' and member_id = ?",
-                (rs, i) => rs.getString(1), memberId);
+                (rs, i) -> rs.getString(1), memberId);
         return rows.isEmpty() ? null : rows.get(0);
     }
 
