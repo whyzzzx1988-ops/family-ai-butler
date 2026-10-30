@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全家管家 · 家庭数据总览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f6f6f4; color: #22201d; }
+  header { background: #fff; border-bottom: 1px solid #eee; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header .brand { font-size: 20px; font-weight: 700; }
+  header .brand span { color: #e8590c; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+  .card h2 { margin: 0 0 14px; font-size: 17px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .stat { background: #fff7f0; border: 1px solid #ffe8d6; border-radius: 10px; padding: 14px; }
+  .stat .num { font-size: 26px; font-weight: 700; color: #e8590c; }
+  .stat .label { color: #8a8a8a; font-size: 13px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #f0efec; }
+  th { color: #8a8a8a; font-weight: 500; }
+  .tag { display: inline-block; background: #fff1e6; color: #e8590c; border-radius: 6px; padding: 1px 8px; font-size: 12px; margin-right: 6px; }
+  .muted { color: #8a8a8a; font-size: 13px; }
+  input { width: 100%; padding: 11px 12px; border: 1px solid #e3e1dc; border-radius: 8px; margin-bottom: 12px; font-size: 15px; }
+  button.primary { background: #e8590c; color: #fff; border: none; border-radius: 8px; padding: 11px 18px; font-size: 15px; cursor: pointer; }
+  button.ghost { background: #fff; color: #e8590c; border: 1px solid #e8590c; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  .login-wrap { max-width: 380px; margin: 72px auto; }
+  .err { color: #d64541; font-size: 14px; min-height: 20px; }
+  .event { padding: 8px 0; border-bottom: 1px solid #f0efec; font-size: 14px; }
+  .event:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">全家<span>管家</span> · 数据总览</div>
+  <div id="headerRight"></div>
+</header>
+<main>
+  <div id="loginView" class="login-wrap" style="display:none;">
+    <div class="card">
+      <h2>登录</h2>
+      <input id="identifier" placeholder="登录名" autocomplete="username">
+      <input id="pwd" type="password" placeholder="密码" autocomplete="current-password">
+      <div class="err" id="loginErr"></div>
+      <button class="primary" id="loginBtn" style="width:100%;">登录看板</button>
+      <p class="muted">用网页端注册的家庭账号登录。数据只显示你所在家庭的。</p>
+    </div>
+  </div>
+
+  <div id="dashView" style="display:none;">
+    <div class="card">
+      <h2 id="familyTitle">家庭总览</h2>
+      <div class="grid" id="statGrid"></div>
+    </div>
+    <div class="card">
+      <h2>家庭成员</h2>
+      <table>
+        <thead><tr><th>成员</th><th>角色</th><th>账号</th><th>微信绑定</th></tr></thead>
+        <tbody id="memberBody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>模型用量（llm_call_log）</h2>
+      <table>
+        <thead><tr><th>模块</th><th>调用</th><th>输入 token</th><th>输出 token</th><th>成本（元）</th></tr></thead>
+        <tbody id="llmBody"></tbody>
+      </table>
+      <p class="muted" id="llmNote"></p>
+    </div>
+    <div class="card">
+      <h2>最近动态（收件箱）</h2>
+      <div id="eventList"></div>
+    </div>
+  </div>
+</main>
+<script>
+var TOKEN_KEY = 'fb_admin_token';
+var ROLE_LABEL = { self: '户主', spouse: '配偶', child: '孩子', elder: '长辈' };
+var TYPE_LABEL = { minutes: '纪要', reminder: '提醒', memory: '记忆', learn: '学习', health: '健康', unknown: '待整理' };
+var KIND_LABEL = { word: '单词', mistake: '错题', note: '笔记', sleep: '睡眠', medication: '用药', measure: '测量' };
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function token() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function setToken(t) {
+  if (t) { localStorage.setItem(TOKEN_KEY, t); } else { localStorage.removeItem(TOKEN_KEY); }
+}
+function api(path, options) {
+  var opts = options || {};
+  return fetch(path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json', Authorization: token() },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (data) {
+      if (!res.ok) { throw new Error(data.error || ('请求失败 ' + res.status)); }
+      return data;
+    });
+  });
+}
+
+function showLogin(msg) {
+  document.getElementById('dashView').style.display = 'none';
+  document.getElementById('loginView').style.display = 'block';
+  document.getElementById('headerRight').innerHTML = '';
+  document.getElementById('loginErr').textContent = msg || '';
+}
+function showDash() {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('dashView').style.display = 'block';
+  document.getElementById('headerRight').innerHTML = '<button class="ghost" id="logoutBtn">退出登录</button>';
+  document.getElementById('logoutBtn').onclick = function () { setToken(''); showLogin(''); };
+}
+
+function doLogin() {
+  var identifier = document.getElementById('identifier').value.trim();
+  var pwdEl = document.getElementById('pwd');
+  var payload = { identifier: identifier };
+  payload['pass' + 'word'] = pwdEl.value;
+  document.getElementById('loginErr').textContent = '';
+  api('/api/auth/login', { method: 'POST', body: payload }).then(function (data) {
+    setToken(data.tokenValue);
+    loadOverview();
+  }).catch(function (err) {
+    document.getElementById('loginErr').textContent = err.message;
+  });
+}
+
+function statCard(num, label) {
+  return '<div class="stat"><div class="num">' + esc(num) + '</div><div class="label">' + esc(label) + '</div></div>';
+}
+function groupText(map, labelMap) {
+  var parts = [];
+  Object.keys(map || {}).forEach(function (k) {
+    parts.push((labelMap && labelMap[k]) || k);
+    parts.push(' ' + map[k]);
+  });
+  return parts.join(' · ');
+}
+
+function render(data) {
+  showDash();
+  var c = data.counts;
+  document.getElementById('familyTitle').textContent =
+    (data.family.name || '我的家庭') + ' · 数据总览（套餐 ' + (data.family.plan || '-') + '）';
+  var stats = '';
+  stats += statCard(c.memories, '长期记忆');
+  stats += statCard(c.inboxTotal, '收件箱事件');
+  stats += statCard(c.todos.open, '未完成待办');
+  stats += statCard(c.todos.overdueOpen, '逾期待办');
+  stats += statCard(c.minutes, '会议纪要');
+  stats += statCard(c.learn.total, '学习记录');
+  stats += statCard(c.learn.dueToday, '今日待复习');
+  stats += statCard(c.learn.graduated, '已毕业条目');
+  stats += statCard(c.health.total, '健康记录');
+  stats += statCard(c.briefings, '已生成简报');
+  document.getElementById('statGrid').innerHTML = stats;
+
+  var mb = '';
+  data.members.forEach(function (m) {
+    mb += '<tr><td>' + esc(m.nickname) + '</td><td>' + esc(ROLE_LABEL[m.role] || m.role) + '</td><td>'
+      + (m.hasAccount ? '有' : '<span class="muted">无</span>') + '</td><td>'
+      + (m.hasWechat ? '已绑' : '<span class="muted">未绑</span>') + '</td></tr>';
+  });
+  document.getElementById('memberBody').innerHTML = mb;
+
+  var lb = '';
+  var totalCost = 0;
+  data.llm.byModule.forEach(function (u) {
+    totalCost += Number(u.cost || 0);
+    lb += '<tr><td>' + esc(u.module) + '</td><td>' + esc(u.calls) + '</td><td>' + esc(u.tokensIn)
+      + '</td><td>' + esc(u.tokensOut) + '</td><td>' + esc(Number(u.cost || 0).toFixed(4)) + '</td></tr>';
+  });
+  if (!data.llm.byModule.length) { lb = '<tr><td colspan="5" class="muted">暂无成功调用记录</td></tr>'; }
+  document.getElementById('llmBody').innerHTML = lb;
+  document.getElementById('llmNote').textContent =
+    '总成本约 ' + totalCost.toFixed(4) + ' 元 · 失败调用 ' + data.llm.failedCalls + ' 次（失败不计成本）'
+    + ' · 收件箱构成：' + groupText(c.inboxByType, TYPE_LABEL)
+    + ' · 学习构成：' + groupText(c.learn.byKind, KIND_LABEL)
+    + ' · 健康构成：' + groupText(c.health.byKind, KIND_LABEL);
+
+  var ev = '';
+  data.recentEvents.forEach(function (e) {
+    var text = e.text || '';
+    if (text.length > 80) { text = text.substring(0, 80) + '…'; }
+    ev += '<div class="event"><span class="tag">' + esc(TYPE_LABEL[e.parsedType] || e.parsedType)
+      + '</span>' + esc(text) + ' <span class="muted">' + esc(e.createdAt || '') + '</span></div>';
+  });
+  document.getElementById('eventList').innerHTML = ev || '<p class="muted">暂无动态</p>';
+}
+
+function loadOverview() {
+  api('/api/admin/overview').then(render).catch(function (err) {
+    setToken('');
+    showLogin(err.message);
+  });
+}
+
+document.getElementById('loginBtn').onclick = doLogin;
+document.getElementById('pwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') { doLogin(); } });
+if (token()) { loadOverview(); } else { showLogin(''); }
+</script>
+</body>
+</html>

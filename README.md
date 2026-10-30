@@ -259,6 +259,14 @@ curl "localhost:8080/api/briefings?date=下周一日期&type=weekly" -H "Authori
 curl -X POST localhost:8080/api/wechat/notify-test -H "Authorization: T" -H "Content-Type: application/json" -d '{"template":"medication"}'
 ```
 
+Web 管理页自检（第七周 N6）。后端启动后浏览器打开 `http://localhost:8080/admin.html`：未登录先出登录框，用家庭账号（登录名+密码）登录后看板应显示本家庭的成员、计数卡片、LLM 按模块用量与最近动态，数字与各业务接口实际数据对得上。接口层也可单独验：
+
+```bash
+# 未登录 → 401；带 token → 200 返回 family/members/counts/llm/recentEvents 五块
+curl localhost:8080/api/admin/overview
+curl localhost:8080/api/admin/overview -H "Authorization: T"
+```
+
 账号与家庭自检（D3，密码已是 BCrypt 真校验）。请求头带 token 时用 `Authorization: <tokenValue>`（Sa-Token 直读，不要加 Bearer 前缀）：
 
 ```bash
