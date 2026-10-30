@@ -53,6 +53,26 @@ Page({
     });
   },
 
+  // 账号密码登录：不走微信那套，后端没配 AppID/Secret 时也能进；账号与网页端通用
+  doPasswordLogin() {
+    if (this.data.busy) return;
+    if (!this.data.identifier || !this.data.password) {
+      wx.showToast({ title: '请填登录名和密码', icon: 'none' });
+      return;
+    }
+    this.setData({ busy: true });
+    api.passwordLogin(this.data.identifier, this.data.password).then(
+      (data) => {
+        this.setData({ busy: false });
+        this.onLoggedIn(data);
+      },
+      (err) => {
+        this.setData({ busy: false });
+        wx.showToast({ title: err.message, icon: 'none', duration: 3000 });
+      }
+    );
+  },
+
   // 绑定：code 一次性，必须重新 wx.login 取新 code，并同带账号密码过一次校验
   doBind() {
     if (this.data.busy) return;

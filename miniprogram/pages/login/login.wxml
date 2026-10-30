@@ -4,11 +4,13 @@
 
   <button class="btn-primary" loading="{{busy}}" bindtap="doLogin">微信一键登录</button>
 
-  <view wx:if="{{needBind}}" class="card" style="margin-top: 32rpx;">
-    <view class="title">绑定家庭账号</view>
-    <view class="muted" style="margin-bottom: 16rpx;">这个微信还没绑定过。填一次网页端注册的登录名和密码完成绑定，以后打开就直接登录。</view>
+  <view class="card" style="margin-top: 32rpx;">
+    <view class="title">{{needBind ? '绑定家庭账号' : '账号密码登录'}}</view>
+    <view wx:if="{{needBind}}" class="muted" style="margin-bottom: 16rpx;">这个微信还没绑定过。填网页端注册的登录名和密码：点「绑定并登录」把微信与账号绑上，以后打开就直接登录；也可以先用账号密码登录进去。</view>
+    <view wx:else class="muted" style="margin-bottom: 16rpx;">微信登录的后端还没部署好时，用网页端同一套账号密码也能登录。</view>
     <input class="field" placeholder="登录名" value="{{identifier}}" bindinput="onIdentifierInput" />
     <input class="field" placeholder="密码" password value="{{password}}" bindinput="onPasswordInput" />
-    <button class="btn-primary" loading="{{busy}}" bindtap="doBind">绑定并登录</button>
+    <button wx:if="{{needBind}}" class="btn-primary" loading="{{busy}}" bindtap="doBind">绑定并登录</button>
+    <button class="{{needBind ? 'btn-ghost' : 'btn-primary'}}" loading="{{busy}}" bindtap="doPasswordLogin" style="margin-top: 12rpx;">账号密码登录</button>
   </view>
 </view>

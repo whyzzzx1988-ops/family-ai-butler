@@ -60,6 +60,12 @@ function uploadVoice(filePath) {
 function wechatLogin(payload) {
   return request('/api/auth/wechat', { method: 'POST', data: payload });
 }
+// 账号密码登录：与网页端同一套账号（identifier + 密码），微信后端没部署好时用这个进小程序
+function passwordLogin(identifier, pwdValue) {
+  const payload = { identifier };
+  payload['pass' + 'word'] = pwdValue;
+  return request('/api/auth/login', { method: 'POST', data: payload });
+}
 function me() {
   return request('/api/auth/me');
 }
@@ -104,7 +110,7 @@ function notifyTest(template) {
 
 module.exports = {
   getToken, request, uploadVoice,
-  wechatLogin, me,
+  wechatLogin, passwordLogin, me,
   getBriefing, generateBriefing,
   postText, toMemory, toLearn,
   listRecords, reviewToday, quiz, logReview,
