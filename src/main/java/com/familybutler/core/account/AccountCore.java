@@ -10,5 +10,4 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AccountCore {
-    // TODO(D3): 家庭空间与成员管理接口
 }

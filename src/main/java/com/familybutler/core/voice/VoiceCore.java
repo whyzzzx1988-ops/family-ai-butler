@@ -10,5 +10,4 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class VoiceCore {
-    // TODO(D4): ASR 转写接入
 }
