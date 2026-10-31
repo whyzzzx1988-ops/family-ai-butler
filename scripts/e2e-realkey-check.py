@@ -58,6 +58,9 @@ def call(method, path, body=None, token=None, raw=None, ctype=None):
         txt = e.read().decode('utf-8')
         try: return e.code, json.loads(txt)
         except Exception: return e.code, {'_text': txt}
+    except urllib.error.URLError as e:
+        # 后端没启动/端口不对：返回状态 0 让断言优雅失败，不抛栈
+        return 0, {'error': f'无法连接后端（{e.reason}）'}
 
 def as_detail(view):
     d = view.get('detail')
@@ -70,11 +73,19 @@ def as_detail(view):
 s, b = call('POST', '/api/auth/login', {'identifier': LOGIN_ID, 'password': LOGIN_PW})
 T = b.get('tokenValue', '')
 check('登录（种子账号密码）', s == 200 and bool(T), f'status={s}')
+if s == 0:
+    print(f'连不上 {BASE}：先启动后端（带真实 DEEPSEEK_API_KEY 环境变量）再跑本脚本。'); sys.exit(1)
 if not T:
     print('登录失败，后续无从验起，先修登录。'); sys.exit(1)
 
+def total_calls(usage):
+    # /api/llm/usage 返回 {byModel: [{model, calls, ...}], failedCalls}，无 totalCalls 字段
+    if not isinstance(usage, dict):
+        return 0
+    return sum(int(r.get('calls', 0)) for r in usage.get('byModel', []))
+
 s, usage0 = call('GET', '/api/llm/usage', token=T)
-calls0 = usage0.get('totalCalls', 0) if isinstance(usage0, dict) else 0
+calls0 = total_calls(usage0)
 
 s, b = call('POST', '/api/llm/chat', {'prompt': '用一句话介绍你自己'}, token=T)
 check('D7 chat 真调用 -> 200 带 reply 与 logId', s == 200 and bool(b.get('reply')) and bool(b.get('logId')),
@@ -86,7 +97,7 @@ s, b = call('POST', '/api/inbox/text',
             token=T)
 E = b.get('id')
 s, b = call('POST', '/api/work/minutes', {'eventId': E}, token=T)
-note_view = b.get('note', b) if isinstance(b, dict) else {}
+note_view = b if isinstance(b, dict) else {}  # 纪要生成返回扁平结构：纪要字段与 llmLogId 同层
 md = note_view.get('contentMd', '') if isinstance(note_view, dict) else ''
 cands = note_view.get('todoCandidates', []) if isinstance(note_view, dict) else []
 N = note_view.get('id') if isinstance(note_view, dict) else None
@@ -117,7 +128,7 @@ s, b = call('POST', '/api/inbox/text',
             {'text': '本周完成了支付联调和首页联调，下周计划上线灰度，风险是第三方接口限流还没压测。'}, token=T)
 E2 = b.get('id')
 s, b = call('POST', '/api/work/minutes', {'eventId': E2, 'template': 'weekly'}, token=T)
-nv = b.get('note', b) if isinstance(b, dict) else {}
+nv = b if isinstance(b, dict) else {}
 md2 = nv.get('contentMd', '') if isinstance(nv, dict) else ''
 check('N5 weekly 模板 -> 段落为 本周进展/下周计划/风险与阻塞 且 template=weekly',
       s == 201 and all(h in md2 for h in ('## 本周进展', '## 下周计划', '## 风险与阻塞')) and nv.get('template') == 'weekly',
@@ -128,7 +139,7 @@ s, members = call('GET', '/api/families/members', token=T)
 C = next((m['id'] for m in members if m.get('role') == 'child'), None) if isinstance(members, list) else None
 s, b = call('POST', '/api/learn/records',
             {'kind': 'word', 'subject': '英语', 'content': '今天学了单词 abandon', 'childMemberId': C}, token=T)
-view = b.get('record', b) if isinstance(b, dict) else {}
+view = b if isinstance(b, dict) else {}  # 学习建录返回扁平结构：记录字段与 llmLogId 同层
 det = as_detail(view)
 check('L 单词加工 -> detail 含 headword/meaning（真模型结构化）',
       s == 201 and bool(det.get('headword')) and bool(det.get('meaning')),
@@ -137,7 +148,7 @@ check('L 加工带 llmLogId', bool(b.get('llmLogId')), '')
 s, b = call('POST', '/api/inbox/text', {'text': '今天数学做错了一道分数加法题，总是通分出错'}, token=T)
 L = b.get('id')
 s, b = call('POST', f'/api/inbox/{L}/to-learn', {'subject': '数学', 'childMemberId': C}, token=T)
-view = b.get('record', b) if isinstance(b, dict) else {}
+view = b if isinstance(b, dict) else {}
 det = as_detail(view)
 check('L 错题加工 -> detail 含 knowledgePoints/analysis',
       s == 201 and (det.get('knowledgePoints') or det.get('analysis')),
@@ -157,7 +168,7 @@ else:
 
 # ---------- 账本对账 ----------
 s, usage1 = call('GET', '/api/llm/usage', token=T)
-calls1 = usage1.get('totalCalls', 0) if isinstance(usage1, dict) else 0
+calls1 = total_calls(usage1)
 check('D7 账本：本轮调用数增加且有成本', calls1 > calls0, f'calls {calls0} -> {calls1}')
 
 # ---------- ASR（可选） ----------
