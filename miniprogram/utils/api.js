@@ -107,6 +107,44 @@ function logReview(recordId, result) {
   return request('/api/learn/review/log', { method: 'POST', data: { recordId, result } });
 }
 
+// —— 播报（TTS）：状态/计划走 JSON；单段合成返回 MP3 二进制（ArrayBuffer） ——
+function getSpeechStatus() {
+  return request('/api/voice/tts/status');
+}
+function planSpeech(text) {
+  return request('/api/voice/tts/plan', { method: 'POST', data: { text } });
+}
+function synthesizeSpeechSegment(text) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: BASE_URL + '/api/voice/tts/segment',
+      method: 'POST',
+      data: { text },
+      timeout: 120000,
+      responseType: 'arraybuffer',
+      header: {
+        'Content-Type': 'application/json',
+        Authorization: getToken(),
+      },
+      success(res) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.data);
+        } else if (res.statusCode === 401) {
+          wx.removeStorageSync('token');
+          reject(new Error('未登录或登录失效'));
+        } else if (res.statusCode === 503) {
+          reject(new Error('后端未配置语音合成（SEED_AUDIO_API_KEY）'));
+        } else {
+          reject(new Error('语音合成失败 ' + res.statusCode));
+        }
+      },
+      fail(err) {
+        reject(new Error('语音合成网络失败：' + (err.errMsg || '后端未启动或地址未配置')));
+      },
+    });
+  });
+}
+
 // —— 微信订阅消息管道自检 ——
 function notifyTest(template) {
   return request('/api/wechat/notify-test', { method: 'POST', data: { template } });
@@ -118,5 +156,6 @@ module.exports = {
   getBriefing, generateBriefing,
   postText, toMemory, toLearn,
   listRecords, reviewToday, quiz, logReview,
+  getSpeechStatus, planSpeech, synthesizeSpeechSegment,
   notifyTest,
 };

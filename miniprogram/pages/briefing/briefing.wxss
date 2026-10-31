@@ -12,3 +12,11 @@
   font-weight: 600;
   margin: 16rpx 0 6rpx;
 }
+.speech-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+.speech-btn {
+  flex: 1;
+}

@@ -5,6 +5,11 @@
 
   <view wx:elif="{{lines}}" class="card">
     <view wx:for="{{lines}}" wx:key="index" class="line {{item.cls}}">{{item.text}}</view>
+    <view class="speech-bar">
+      <button class="btn-primary speech-btn" loading="{{speechState === 'loading'}}" bindtap="toggleSpeech">{{speechLabel}}</button>
+      <button wx:if="{{speechState === 'playing' || speechState === 'paused' || speechState === 'loading'}}" class="btn-ghost speech-btn" bindtap="stopSpeech">停止</button>
+    </view>
+    <view wx:if="{{speechHint}}" class="muted" style="margin-top: 10rpx;">{{speechHint}}</view>
   </view>
 
   <view wx:else class="card">

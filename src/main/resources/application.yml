@@ -55,6 +55,13 @@ butler:
     ws-url: ${ASR_WS_URL:wss://dashscope.aliyuncs.com/api-ws/v1/inference}
     model: ${ASR_MODEL:paraformer-realtime-v2}
     timeout-seconds: 30
+  tts:
+    # 火山 OpenSpeech seed-audio API Key 只走环境变量；没配时播报接口 503 明示、状态接口 configured=false
+    api-key: ${SEED_AUDIO_API_KEY:}
+    base-url: ${SEED_AUDIO_BASE_URL:https://openspeech.bytedance.com/api/v3}
+    model: ${SEED_AUDIO_MODEL:seed-audio-1.0}
+    sample-rate: ${SEED_AUDIO_SAMPLE_RATE:48000}
+    timeout-seconds: ${SEED_AUDIO_TIMEOUT_SECONDS:120}
   inbox:
     # 语音原文件存放目录（已进 .gitignore，不入库）
     audio-dir: ${BUTLER_AUDIO_DIR:./data/audio}

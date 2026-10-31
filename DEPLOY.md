@@ -6,7 +6,7 @@
 
 - [ ] 云服务器一台（2 核 4G 起步即可）：装好 Docker 与 Docker Compose v2，安全组放行 80/443（8080 只给反代本机回环用，不必公网开放）
 - [ ] 域名一个并完成 **ICP 备案**（小程序正式版强制要求已备案的 HTTPS 域名；备案通常 1–3 周，最先启动）
-- [ ] DeepSeek API Key、阿里云百炼 API Key（百炼账户状态需正常，否则语音转写返回 Arrearage）
+- [ ] DeepSeek API Key、阿里云百炼 API Key（百炼账户状态需正常，否则语音转写返回 Arrearage）、火山 OpenSpeech seed-audio API Key（小程序简报播报用；不配则播报接口 503 明示，其余功能不受影响）
 - [ ] 微信公众平台（小程序后台）办 4 件事：
   1. 开发管理 → 开发设置：拿到 AppID / AppSecret；把服务器公网 IP 加进 **IP 白名单**
   2. 功能 → 订阅消息：申请 4 个模板（晨报、复习提醒、用药、待办），字段统一选 `thing1` + `date2`，记下各自模板 ID

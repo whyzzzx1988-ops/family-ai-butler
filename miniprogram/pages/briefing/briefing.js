@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const config = require('../../utils/config');
+const { createSpeechPlayer } = require('../../utils/speech');
 
 function todayStr() {
   const d = new Date();
@@ -22,7 +23,27 @@ Page({
     date: '',
     loading: false,
     lines: null, // null = 还没生成；数组 = 简报逐行
+    contentMd: '', // 简报原文（播报时传给后端分段）
     generating: false,
+    speechState: 'idle', // idle / loading / playing / paused / ended / error
+    speechLabel: '朗读简报',
+    speechHint: '',
+  },
+
+  onLoad() {
+    this.speechPlayer = createSpeechPlayer((info) => this.onSpeechState(info));
+  },
+
+  onHide() {
+    if (this.speechPlayer && this.data.speechState === 'playing') {
+      this.speechPlayer.pause();
+    }
+  },
+
+  onUnload() {
+    if (this.speechPlayer) {
+      this.speechPlayer.destroy();
+    }
   },
 
   onShow() {
@@ -38,7 +59,7 @@ Page({
     this.setData({ loading: true });
     api.getBriefing(this.data.date).then(
       (data) => {
-        this.setData({ loading: false, lines: toLines(data.contentMd) });
+        this.setData({ loading: false, lines: toLines(data.contentMd), contentMd: data.contentMd || '' });
       },
       () => {
         // 404 = 今天还没生成，给生成按钮
@@ -48,16 +69,63 @@ Page({
   },
 
   generate() {
+    if (this.speechPlayer) {
+      this.speechPlayer.stop();
+    }
     this.setData({ generating: true });
     api.generateBriefing().then(
       (data) => {
-        this.setData({ generating: false, lines: toLines(data.contentMd) });
+        this.setData({ generating: false, lines: toLines(data.contentMd), contentMd: data.contentMd || '' });
       },
       (err) => {
         this.setData({ generating: false });
         wx.showToast({ title: err.message, icon: 'none', duration: 3000 });
       }
     );
+  },
+
+  // —— 简报播报 ——
+  onSpeechState(info) {
+    const seg = info.total > 0 ? '第 ' + (info.index + 1) + '/' + info.total + ' 段' : '';
+    if (info.state === 'loading') {
+      this.setData({ speechState: 'loading', speechLabel: '正在准备…', speechHint: info.total > 0 ? '正在合成' + seg : '正在生成播报计划…' });
+    } else if (info.state === 'playing') {
+      this.setData({ speechState: 'playing', speechLabel: '暂停朗读', speechHint: '正在朗读' + seg });
+    } else if (info.state === 'paused') {
+      this.setData({ speechState: 'paused', speechLabel: '继续朗读', speechHint: '已暂停 · ' + seg });
+    } else if (info.state === 'ended') {
+      this.setData({ speechState: 'ended', speechLabel: '重新朗读', speechHint: '朗读完毕' });
+    } else if (info.state === 'error') {
+      this.setData({ speechState: 'error', speechLabel: '重新朗读', speechHint: '' });
+      wx.showToast({ title: info.message || '播报失败', icon: 'none', duration: 3000 });
+    } else {
+      this.setData({ speechState: 'idle', speechLabel: '朗读简报', speechHint: '' });
+    }
+  },
+
+  toggleSpeech() {
+    if (!this.speechPlayer) return;
+    const state = this.data.speechState;
+    if (state === 'playing') {
+      this.speechPlayer.pause();
+      return;
+    }
+    if (state === 'paused') {
+      this.speechPlayer.resume();
+      return;
+    }
+    if (state === 'loading') return;
+    if (!this.data.contentMd) {
+      wx.showToast({ title: '先生成简报再朗读', icon: 'none' });
+      return;
+    }
+    this.speechPlayer.play(this.data.contentMd);
+  },
+
+  stopSpeech() {
+    if (this.speechPlayer) {
+      this.speechPlayer.stop();
+    }
   },
 
   // 订阅晨报：订阅消息一次授权只能推一条，触发管道自检走后端 /api/wechat/notify-test

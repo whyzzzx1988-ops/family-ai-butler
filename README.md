@@ -43,6 +43,19 @@ curl localhost:8080/api/inbox -H "Authorization: T"
 
 语音转写走 Paraformer 实时版（DashScope WebSocket 推流，不需要音频公网地址）。启动应用前先设百炼 API Key 环境变量：PowerShell 里 `$env:DASHSCOPE_API_KEY="sk-..."` 再启动。没设 Key 时语音仍会落盘并返回 `asr_unconfigured` 状态（不丢音频）；音频文件存在项目 `data/audio/`（不入库），支持 wav/mp3/pcm/aac/m4a/amr/opus，请用单声道录音。
 
+小程序播报自检（TTS 出，火山 OpenSpeech seed-audio-1.0）。启动前先设 `SEED_AUDIO_API_KEY`（没设时 status 的 configured=false、plan/segment 返回 503 明示）。播报链：小程序把简报原文发 plan 分段（每段 ≤240 字），再逐段调 segment 合成 MP3 边播边预取下一段：
+
+```bash
+# 状态 → configured=true、provider=openspeech-seed-audio
+curl localhost:8080/api/voice/tts/status -H "Authorization: T"
+# 分段计划 → chunks 为清洗后的纯文本段（Markdown 标记已去掉），带总字数与粗略时长预估
+curl -X POST localhost:8080/api/voice/tts/plan -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"# 全家简报\n\n## 今日工作\n- 10:00 项目周会"}'
+# 合成一段 → 返回 MP3 二进制，用任意播放器打开应能听到朗读
+curl -X POST localhost:8080/api/voice/tts/segment -H "Authorization: T" -H "Content-Type: application/json" \
+  -d '{"text":"今日工作。10:00 项目周会。"}' --output speech.mp3
+```
+
 长期记忆自检（D5，存/查/删 + 隔离）。继续用 D3 的 token T（户主）和配偶 token T2（用 xifu 账号登录拿）：
 
 ```bash
