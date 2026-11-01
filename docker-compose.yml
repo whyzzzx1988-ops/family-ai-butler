@@ -8,7 +8,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/butler
       DB_USER: butler
-      DB_PASSWORD: butler_dev_only
+      DB_PASSWORD: ${DB_PASSWORD:-butler_dev_only}
       REDIS_HOST: redis
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
       SEED_AUDIO_API_KEY: ${SEED_AUDIO_API_KEY:-}
@@ -30,7 +30,7 @@ services:
     environment:
       POSTGRES_DB: butler
       POSTGRES_USER: butler
-      POSTGRES_PASSWORD: butler_dev_only
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-butler_dev_only}
     ports:
       - "5432:5432"
     volumes:

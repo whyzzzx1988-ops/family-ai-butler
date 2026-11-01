@@ -166,7 +166,7 @@ public class BriefingService {
             double sum = durations.stream().mapToDouble(Double::doubleValue).sum();
             double max = durations.stream().mapToDouble(Double::doubleValue).max().orElse(0);
             double min = durations.stream().mapToDouble(Double::doubleValue).min().orElse(0);
-            sb.append("，其中 ").append(durations.size()).append(" 晚有时长\n");
+            sb.append("，其中 ").append(durations.size()).append(" 条有时长\n");
             sb.append("- 平均时长 ").append(fmtHours(sum / durations.size()))
                     .append(" 小时 · 最长 ").append(fmtHours(max))
                     .append(" · 最短 ").append(fmtHours(min)).append("\n");
