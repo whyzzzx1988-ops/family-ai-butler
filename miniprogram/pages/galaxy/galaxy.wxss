@@ -1,0 +1,92 @@
+.voyage {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14rpx 0 10rpx;
+}
+.voyage-pct {
+  color: #FFC531;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+.route {
+  position: relative;
+  padding: 10rpx 0;
+}
+.route-line {
+  position: absolute;
+  left: 99rpx;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2rpx dashed rgba(255, 197, 49, 0.35);
+}
+.galaxy-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 26rpx;
+}
+.orb {
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 24rpx;
+}
+.orb-count {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #0B0E1A;
+}
+.g-word {
+  background: radial-gradient(circle at 35% 35%, #CFE2FF, #4A6FA5 70%);
+  box-shadow: 0 0 34rpx rgba(120, 160, 255, 0.55);
+}
+.g-mistake {
+  background: radial-gradient(circle at 35% 35%, #FFD9C2, #C25E3A 70%);
+  box-shadow: 0 0 34rpx rgba(255, 140, 90, 0.5);
+}
+.g-note {
+  background: radial-gradient(circle at 35% 35%, #CFF7E8, #3A9C7C 70%);
+  box-shadow: 0 0 34rpx rgba(110, 230, 190, 0.45);
+}
+.orb.dim {
+  background: radial-gradient(circle at 35% 35%, #3A415A, #171C2E 75%);
+  box-shadow: none;
+}
+.orb.dim .orb-count {
+  color: #5B6B8C;
+}
+.galaxy-info {
+  flex: 1;
+  margin-bottom: 0;
+}
+.galaxy-name {
+  font-size: 31rpx;
+  font-weight: 600;
+  color: #FFE082;
+  margin-bottom: 6rpx;
+}
+.not-arrived {
+  color: #98A2B8;
+  margin-top: 12rpx;
+}
+.sb-track {
+  height: 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.sb-fill {
+  height: 100%;
+  border-radius: 999rpx;
+}
+.sb-mid {
+  background: linear-gradient(90deg, #FFD34D, #FFB300);
+}
+.sb-done {
+  background: linear-gradient(90deg, #7CE3A8, #2ECC71);
+}

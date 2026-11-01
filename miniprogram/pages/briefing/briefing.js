@@ -29,6 +29,7 @@ Page({
     speechLabel: '朗读简报',
     speechHint: '',
     speechDots: [], // 朗读进度星点阵：done 已播 / now 当前段 / todo 未播；段数 >30 时不渲染点阵只留文字
+    familyRows: [],
   },
 
   onLoad() {
@@ -54,6 +55,25 @@ Page({
     }
     this.setData({ date: todayStr() });
     this.load();
+    this.loadFamily();
+  },
+
+  // 全家星图（T14）：每个成员的累计星数与近 7 日复习，数据来自 /api/learn/stats/family
+  loadFamily() {
+    const ROLE_LABEL = { self: '户主', spouse: '配偶', child: '孩子' };
+    api.getFamilyStats().then(
+      (rows) => {
+        const familyRows = (rows || []).map((r) => ({
+          nickname: r.nickname,
+          roleLabel: ROLE_LABEL[r.role] || r.role,
+          total: r.totalRecords || 0,
+          reviews7: r.reviews7Days || 0,
+          streak: r.streakDays || 0,
+        }));
+        this.setData({ familyRows });
+      },
+      () => {}
+    );
   },
 
   load() {

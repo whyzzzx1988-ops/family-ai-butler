@@ -282,6 +282,139 @@
   font-size: 21rpx;
   color: #98A2B8;
 }
+/* 目标冲刺卡 */
+.goal-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #FFE082;
+}
+.goal-pick {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 999rpx;
+  padding: 12rpx 24rpx;
+  color: #F4F1E6;
+  font-size: 27rpx;
+}
+.goal-target {
+  width: 200rpx;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 999rpx;
+  padding: 12rpx 20rpx;
+  color: #F4F1E6;
+  font-size: 27rpx;
+  margin-left: 12rpx;
+}
+/* 学习时钟 */
+.hour-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12rpx;
+  height: 120rpx;
+  margin-top: 10rpx;
+}
+.hour-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+.hour-bar {
+  width: 22rpx;
+  border-radius: 6rpx 6rpx 0 0;
+  background: linear-gradient(180deg, #7FB2FF, rgba(74, 111, 165, 0.5));
+  min-height: 4rpx;
+}
+.hour-label {
+  font-size: 20rpx;
+  color: #98A2B8;
+  margin-top: 4rpx;
+}
+/* 星牌抽查 */
+.star-card {
+  position: relative;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(255, 197, 49, 0.35);
+  background: radial-gradient(circle at 50% 30%, rgba(50, 64, 110, 0.85), rgba(10, 14, 30, 0.98));
+  min-height: 380rpx;
+  padding: 48rpx 36rpx;
+  margin: 8rpx 0 14rpx;
+  overflow: hidden;
+  text-align: center;
+}
+.sc-ring {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 340rpx;
+  height: 340rpx;
+  margin: -170rpx 0 0 -170rpx;
+  border: 1rpx dashed rgba(255, 197, 49, 0.28);
+  border-radius: 50%;
+}
+.sc-ring.r2 {
+  width: 250rpx;
+  height: 250rpx;
+  margin: -125rpx 0 0 -125rpx;
+  border-style: solid;
+  border-color: rgba(255, 197, 49, 0.14);
+}
+.sc-star {
+  font-size: 84rpx;
+  color: #FFC531;
+  text-shadow: 0 0 30rpx rgba(255, 197, 49, 0.8);
+  position: relative;
+}
+.sc-kind {
+  color: #FFC531;
+  font-size: 25rpx;
+  letter-spacing: 3rpx;
+  position: relative;
+}
+.sc-question {
+  font-size: 36rpx;
+  font-weight: 600;
+  margin: 22rpx 0 14rpx;
+  position: relative;
+}
+.sc-ref {
+  color: #E8DFC8;
+  font-size: 28rpx;
+  position: relative;
+}
+.sc-tip {
+  color: #98A2B8;
+  font-size: 25rpx;
+  position: relative;
+}
+/* 海报 */
+.poster-canvas {
+  position: absolute;
+  left: -2000px;
+  top: 0;
+}
+.poster-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(3, 5, 12, 0.92);
+  z-index: 50;
+  padding: 60rpx 50rpx;
+  overflow-y: auto;
+}
+.poster-img {
+  width: 100%;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(255, 197, 49, 0.35);
+}
+.galaxy-link {
+  text-align: center;
+  line-height: 2.4;
+}
 /* 记录搜索 */
 .search-input {
   background: rgba(255, 255, 255, 0.05);

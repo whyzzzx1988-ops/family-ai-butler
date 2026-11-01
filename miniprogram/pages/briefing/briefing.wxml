@@ -29,6 +29,16 @@
     <button class="btn-primary" loading="{{generating}}" bindtap="generate">生成今日简报</button>
   </view>
 
+  <view wx:if="{{familyRows.length}}" class="card">
+    <view class="title">全家星图</view>
+    <view wx:for="{{familyRows}}" wx:key="nickname" class="rowline">
+      <text class="tag">{{item.roleLabel}}</text>
+      <text class="flex">{{item.nickname}}</text>
+      <text class="muted">藏星 {{item.total}} · 近 7 日复习 {{item.reviews7}} 次{{item.streak ? ' · 连续 ' + item.streak + ' 天' : ''}}</text>
+    </view>
+    <view class="muted" style="margin-top: 8rpx;">学习星图明细在「学习」页；这里只看全家节奏。</view>
+  </view>
+
   <button class="btn-ghost" bindtap="subscribe">订阅晨报提醒</button>
   <button class="btn-ghost" bindtap="subscribeMore" style="margin-top: 12rpx;">订阅用药 / 待办提醒</button>
   <view class="muted" style="margin-top: 12rpx;">定时简报由后端每天 07:00 自动生成；订阅消息需先在公众平台申请模板并配置模板 ID。复习提醒的订阅在「学习」页。</view>

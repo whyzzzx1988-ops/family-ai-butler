@@ -100,6 +100,9 @@ function listRecords(kind) {
 function getLearnStats() {
   return request('/api/learn/stats');
 }
+function getFamilyStats() {
+  return request('/api/learn/stats/family');
+}
 function reviewToday() {
   return request('/api/learn/review/today');
 }
@@ -158,7 +161,7 @@ module.exports = {
   wechatLogin, passwordLogin, devLogin, me,
   getBriefing, generateBriefing,
   postText, toMemory, toLearn,
-  listRecords, getLearnStats, reviewToday, quiz, logReview,
+  listRecords, getLearnStats, getFamilyStats, reviewToday, quiz, logReview,
   getSpeechStatus, planSpeech, synthesizeSpeechSegment,
   notifyTest,
 };

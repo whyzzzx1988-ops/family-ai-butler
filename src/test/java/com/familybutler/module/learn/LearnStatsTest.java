@@ -37,6 +37,19 @@ class LearnStatsTest {
     }
 
     @Test
+    void countByHourBucketsInShanghaiTime() {
+        // 00:30 UTC = 08:30 Asia/Shanghai，应落 8 点桶；23:30 UTC = 次日 07:30，落 7 点桶
+        long[] buckets = LearnService.countByHour(List.of(
+                java.time.OffsetDateTime.parse("2026-11-01T00:30:00Z"),
+                java.time.OffsetDateTime.parse("2026-11-01T00:45:00Z"),
+                java.time.OffsetDateTime.parse("2026-10-31T23:30:00Z")));
+        assertEquals(24, buckets.length);
+        assertEquals(2, buckets[8]);
+        assertEquals(1, buckets[7]);
+        assertEquals(3, java.util.Arrays.stream(buckets).sum());
+    }
+
+    @Test
     void countByDayFillsZerosOldestFirst() {
         List<LocalDate> days = List.of(TODAY, TODAY, TODAY.minusDays(3), TODAY.minusDays(9));
         List<LearnService.DayCount> out = LearnService.countByDay(days, TODAY, 7);

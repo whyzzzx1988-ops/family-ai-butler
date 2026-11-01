@@ -15,6 +15,35 @@
     <view wx:if="{{jarHint}}" class="muted" style="margin-top: 12rpx;">{{jarHint}}</view>
   </view>
 
+  <view class="card">
+    <view class="jar-head">
+      <text class="title" style="margin-bottom: 0;">目标冲刺</text>
+      <button wx:if="{{goalView && !goalEditing}}" class="btn-ghost mini" bindtap="openGoalEdit">调整</button>
+    </view>
+    <block wx:if="{{goalEditing}}">
+      <input class="search-input" placeholder="目标名字，如：期末前把错题过一遍" value="{{goalForm.label}}" bindinput="onGoalLabel" />
+      <view class="row">
+        <picker mode="date" value="{{goalForm.date}}" bindchange="onGoalDate" class="flex">
+          <view class="goal-pick">{{goalForm.date ? '目标日：' + goalForm.date : '选目标日期'}}</view>
+        </picker>
+        <input class="goal-target" type="number" placeholder="目标条数" value="{{goalForm.target}}" bindinput="onGoalTarget" />
+      </view>
+      <view class="row" style="margin-top: 12rpx;">
+        <button class="btn-primary flex" bindtap="saveGoal">挂上星图</button>
+        <button class="btn-ghost" bindtap="closeGoalEdit">取消</button>
+        <button wx:if="{{goal}}" class="btn-ghost" bindtap="clearGoal">清除目标</button>
+      </view>
+      <view class="muted" style="margin-top: 10rpx;">目标按累计学习记录条数算，只算量、不预测分数。</view>
+    </block>
+    <block wx:elif="{{goalView}}">
+      <view class="goal-name">{{goalView.label}}</view>
+      <view class="sb-track" style="margin: 12rpx 0;"><view class="sb-fill sb-mid" style="width: {{goalView.pct}}%;"></view></view>
+      <view class="muted">{{goalView.total}} / {{goalView.target}} 条 · 到 {{goalView.date}}</view>
+      <view class="stats-hint">{{goalView.status}}</view>
+    </block>
+    <view wx:else class="muted">给娃设个小目标：哪天之前，累计添到多少颗星。<button class="btn-ghost mini" style="margin-left: 12rpx;" bindtap="openGoalEdit">设个目标</button></view>
+  </view>
+
   <view wx:if="{{stats}}" class="card">
     <view class="jar-head">
       <text class="title" style="margin-bottom: 0;">学习星图</text>
@@ -35,6 +64,19 @@
     </view>
     <view class="muted">近 7 日复习 {{stats.reviews7Days}} 次 · 今日 {{stats.reviewsToday}} 次</view>
     <view wx:if="{{statsView.hint}}" class="stats-hint">{{statsView.hint}}</view>
+    <block wx:if="{{statsView.hourBars.length}}">
+      <view class="muted" style="margin-top: 16rpx;">学习时钟 · 多在 {{statsView.peakHour}} 点复习</view>
+      <view class="hour-bars">
+        <view class="hour-col" wx:for="{{statsView.hourBars}}" wx:key="hour">
+          <view class="hour-bar" style="height: {{item.h}}rpx;"></view>
+          <text class="hour-label">{{item.hour}}时</text>
+        </view>
+      </view>
+    </block>
+    <view class="row" style="margin-top: 16rpx;">
+      <button class="btn-ghost flex" bindtap="makePoster">生成今日星图海报</button>
+      <navigator class="btn-ghost flex galaxy-link" url="/pages/galaxy/galaxy">进入星空航线 ›</navigator>
+    </view>
   </view>
 
   <view wx:if="{{badges.length}}" class="card">
@@ -60,9 +102,36 @@
   </view>
 
   <view wx:if="{{quizItems}}" class="card">
-    <view class="title">抽查</view>
-    <view wx:if="{{quizNote}}" class="muted" style="margin-bottom: 12rpx;">{{quizNote}}</view>
-    <view wx:for="{{quizItems}}" wx:key="recordId" class="quiz">
+    <view class="jar-head">
+      <text class="title" style="margin-bottom: 0;">抽查</text>
+      <button wx:if="{{!cardMode}}" class="btn-ghost mini" bindtap="enterCards">换星牌模式</button>
+      <button wx:else class="btn-ghost mini" bindtap="exitCards">回列表模式</button>
+    </view>
+    <view wx:if="{{quizNote}}" class="muted" style="margin: 12rpx 0;">{{quizNote}}</view>
+    <block wx:if="{{cardMode}}">
+      <view class="star-card" bindtap="flipCard">
+        <view class="sc-ring"></view>
+        <view class="sc-ring r2"></view>
+        <block wx:if="{{quizItems[cardIdx].showRef}}">
+          <view class="sc-kind">{{quizItems[cardIdx].kindLabel}}</view>
+          <view class="sc-question">{{quizItems[cardIdx].question}}</view>
+          <view class="sc-ref">{{quizItems[cardIdx].reference}}</view>
+        </block>
+        <block wx:else>
+          <view class="sc-star">★</view>
+          <view class="sc-kind">{{quizItems[cardIdx].kindLabel}}</view>
+          <view class="sc-question">{{quizItems[cardIdx].question}}</view>
+          <view class="sc-tip">先想想它的意思，点牌揭开参考</view>
+        </block>
+      </view>
+      <view class="muted" style="text-align: center;">第 {{cardIdx + 1}} / {{quizItems.length}} 张</view>
+      <view wx:if="{{!quizItems[cardIdx].done}}" class="row" style="margin-top: 12rpx;">
+        <button class="grade-btn g-mastered" data-result="mastered" bindtap="gradeCard">记住了 · 进一段</button>
+        <button class="grade-btn g-fuzzy" data-result="fuzzy" bindtap="gradeCard">模糊 · 明天再来</button>
+        <button class="grade-btn g-forgot" data-result="forgot" bindtap="gradeCard">忘了 · 回第一段</button>
+      </view>
+    </block>
+    <view wx:if="{{!cardMode}}" wx:for="{{quizItems}}" wx:key="recordId" class="quiz">
       <view><text class="tag">{{item.kindLabel}}</text> {{item.question}}</view>
       <view wx:if="{{item.showRef}}" class="ref" data-idx="{{index}}" bindtap="toggleRef">参考：{{item.reference}}<text class="ref-hide">（点这里收起）</text></view>
       <view wx:else class="ref masked" data-idx="{{index}}" bindtap="toggleRef">轻点揭开参考</view>
@@ -94,4 +163,13 @@
 
   <button class="btn-ghost" bindtap="subscribeReview">订阅复习提醒</button>
   <view class="muted" style="margin-top: 12rpx;">每天 19:00 有到期复习时推送；订阅消息需先在公众平台申请模板并配置模板 ID。</view>
+
+  <canvas canvas-id="posterCanvas" class="poster-canvas" style="width: 750px; height: 1040px;"></canvas>
+  <view wx:if="{{posterPath}}" class="poster-mask">
+    <image class="poster-img" src="{{posterPath}}" mode="widthFix" />
+    <view class="row" style="margin-top: 20rpx;">
+      <button class="btn-primary flex" bindtap="savePoster">存到相册</button>
+      <button class="btn-ghost" bindtap="closePoster">关闭</button>
+    </view>
+  </view>
 </view>

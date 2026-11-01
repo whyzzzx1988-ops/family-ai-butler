@@ -65,7 +65,23 @@ public class LearnController {
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> stats(@RequestParam(required = false) Long memberId) {
         AccountService.MemberView me = currentUser.requireMember();
-        LearnService.LearnStats s = learnService.stats(me.familyId(), memberId);
+        return ResponseEntity.ok(statsBody(learnService.stats(me.familyId(), memberId)));
+    }
+
+    /** 全家星图（P2）：每个家庭成员一行个人统计，供简报页家长视角汇总。 */
+    @GetMapping("/stats/family")
+    public ResponseEntity<List<Map<String, Object>>> familyStats() {
+        AccountService.MemberView me = currentUser.requireMember();
+        return ResponseEntity.ok(learnService.familyStats(me.familyId()).stream().map(ms -> {
+            Map<String, Object> row = statsBody(ms.stats());
+            row.put("memberId", ms.memberId());
+            row.put("nickname", ms.nickname());
+            row.put("role", ms.role());
+            return row;
+        }).toList());
+    }
+
+    Map<String, Object> statsBody(LearnService.LearnStats s) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("totalRecords", s.totalRecords());
         body.put("byKind", s.byKind());
@@ -79,7 +95,10 @@ public class LearnController {
         body.put("reviews7Days", s.reviews7Days());
         body.put("forgot7Days", s.forgot7Days());
         body.put("streakDays", s.streakDays());
-        return ResponseEntity.ok(body);
+        body.put("kindStages", s.kindStages().stream()
+                .map(k -> Map.of("kind", k.kind(), "total", k.total(), "graduated", k.graduated())).toList());
+        body.put("reviewsByHour", s.reviewsByHour());
+        return body;
     }
 
     @GetMapping("/records/{id}")

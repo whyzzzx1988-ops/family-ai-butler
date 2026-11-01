@@ -1,0 +1,33 @@
+<view class="container">
+  <view class="card">
+    <view class="title">星空航线</view>
+    <view class="muted">三类记录是三个星系，复习毕业就是航程。</view>
+    <view class="voyage">
+      <text>全程 {{total}} 颗星 · 已抵达终点（毕业）{{graduated}} 颗</text>
+      <text class="voyage-pct">{{pct}}%</text>
+    </view>
+    <view class="sb-track"><view class="sb-fill sb-mid" style="width: {{pct}}%;"></view></view>
+  </view>
+
+  <view wx:if="{{loading}}" class="muted">正在展开星图…</view>
+
+  <view class="route">
+    <view class="route-line"></view>
+    <view wx:for="{{galaxies}}" wx:key="kind" class="galaxy-row">
+      <view class="orb {{item.cls}} {{item.arrived ? '' : 'dim'}}" style="width: {{item.size}}rpx; height: {{item.size}}rpx;">
+        <text class="orb-count">{{item.total}}</text>
+      </view>
+      <view class="galaxy-info card">
+        <view class="galaxy-name">{{item.name}}</view>
+        <view class="muted">{{item.desc}}</view>
+        <block wx:if="{{item.arrived}}">
+          <view class="sb-track" style="margin: 12rpx 0;"><view class="sb-fill sb-done" style="width: {{item.pct}}%;"></view></view>
+          <view class="muted">藏星 {{item.total}} 颗 · 已毕业 {{item.graduated}} 颗（{{item.pct}}%）</view>
+        </block>
+        <view wx:else class="not-arrived">未抵达 · 还没有这类记录，去「说一句」添第一颗星</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="muted" style="text-align: center; margin-top: 8rpx;">航线尽头不是终点，瓶满了就换大瓶子</view>
+</view>

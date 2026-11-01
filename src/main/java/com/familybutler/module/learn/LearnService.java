@@ -112,10 +112,19 @@ public class LearnService {
     public record DayCount(String date, long count) {
     }
 
+    /** 每类记录的总数与已毕业数（星空航线页的星系数据）。 */
+    public record KindStage(String kind, long total, long graduated) {
+    }
+
     public record LearnStats(long totalRecords, Map<String, Long> byKind,
                              long newCount, long reviewingCount, long graduatedCount,
                              long dueCount, long reviewsToday, List<DayCount> reviewsLast7Days,
-                             long reviews7Days, long forgot7Days, long streakDays) {
+                             long reviews7Days, long forgot7Days, long streakDays,
+                             List<KindStage> kindStages, List<Long> reviewsByHour) {
+    }
+
+    /** 全家星图一行：成员 + 其个人统计（口径与单人 stats 一致）。 */
+    public record MemberStats(long memberId, String nickname, String role, LearnStats stats) {
     }
 
     private static final String COLUMNS =
@@ -337,6 +346,10 @@ public class LearnService {
         byKind.put("word", 0L);
         byKind.put("mistake", 0L);
         byKind.put("note", 0L);
+        Map<String, long[]> kindAgg = new LinkedHashMap<>(); // kind -> [总数, 已毕业]
+        for (String k : byKind.keySet()) {
+            kindAgg.put(k, new long[2]);
+        }
         long[] stageBuckets = new long[3]; // 0 新学 / 1 复习中 / 2 已毕业
         Set<LocalDate> activeDays = new HashSet<>();
         List<LocalDate> recordDays = jdbc.query(
@@ -344,10 +357,14 @@ public class LearnService {
                         + memberClause,
                 (rs, i) -> {
                     String kind = rs.getString("kind");
+                    int stage = rs.getInt("review_stage");
                     if (byKind.containsKey(kind)) {
                         byKind.merge(kind, 1L, Long::sum);
+                        kindAgg.get(kind)[0]++;
+                        if (stage >= 3) {
+                            kindAgg.get(kind)[1]++;
+                        }
                     }
-                    int stage = rs.getInt("review_stage");
                     stageBuckets[stage >= 3 ? 2 : (stage == 0 ? 0 : 1)]++;
                     return rs.getObject("d", LocalDate.class);
                 }, args.toArray());
@@ -377,8 +394,38 @@ public class LearnService {
         List<DayCount> last7 = countByDay(logDays, today, 7);
         long reviews7 = last7.stream().mapToLong(DayCount::count).sum();
         long due = reviewToday(familyId, memberId).size();
+
+        List<OffsetDateTime> logTimes = jdbc.query(
+                "select created_at from review_log where family_id = ?" + memberClause,
+                (rs, i) -> rs.getObject("created_at", OffsetDateTime.class), args.toArray());
+        long[] byHour = countByHour(logTimes);
+        List<Long> reviewsByHour = new ArrayList<>(24);
+        for (long v : byHour) {
+            reviewsByHour.add(v);
+        }
+        List<KindStage> kindStages = kindAgg.entrySet().stream()
+                .map(e -> new KindStage(e.getKey(), e.getValue()[0], e.getValue()[1])).toList();
         return new LearnStats(totalRecords, byKind, stageBuckets[0], stageBuckets[1], stageBuckets[2],
-                due, logAgg[0], last7, reviews7, logAgg[1], computeStreak(activeDays, today));
+                due, logAgg[0], last7, reviews7, logAgg[1], computeStreak(activeDays, today),
+                kindStages, reviewsByHour);
+    }
+
+    /** 全家星图：逐个成员跑一遍单人统计（家庭规模小，直算不缓存）。 */
+    public List<MemberStats> familyStats(long familyId) {
+        return accountService.listMembers(familyId).stream()
+                .map(m -> new MemberStats(m.id(), m.nickname(), m.role(), stats(familyId, m.id())))
+                .toList();
+    }
+
+    /** 复习发生的小时分布（Asia/Shanghai，24 桶）：学习时钟的数据源。 */
+    static long[] countByHour(List<OffsetDateTime> times) {
+        long[] buckets = new long[24];
+        for (OffsetDateTime t : times) {
+            if (t != null) {
+                buckets[t.atZoneSameInstant(ZONE).getHour()]++;
+            }
+        }
+        return buckets;
     }
 
     /** 连续活跃天数：以今天（或昨天，今天还没动不算断）为锚往前数连续自然日。 */

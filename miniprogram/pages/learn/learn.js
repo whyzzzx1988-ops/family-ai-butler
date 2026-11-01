@@ -62,7 +62,38 @@ function buildStatsView(s) {
   } else if ((s.totalRecords || 0) > 0) {
     hint = '节奏不错，保持住';
   }
-  return { stageBars, weekBars, hint };
+  // 学习时钟：复习发生的小时分布（24 桶），只画有量的小时，标注高峰时段
+  const hours = s.reviewsByHour || [];
+  const hMax = Math.max(1, ...hours.map((c) => c || 0));
+  let peakHour = -1;
+  hours.forEach((c, h) => { if ((c || 0) > 0 && (peakHour < 0 || c > hours[peakHour])) peakHour = h; });
+  const hourBars = hours.map((c, h) => ({ hour: h, count: c || 0, h: Math.max(4, Math.round((c || 0) * 100 / hMax)) }))
+    .filter((b) => b.count > 0);
+  return { stageBars, weekBars, hint, hourBars, peakHour };
+}
+
+// —— 目标冲刺卡（T10）：目标存本机，只算量的账 ——
+// goal = { label, date: 'yyyy-MM-dd', target: 累计条数目标 }；进度 = stats.totalRecords
+function buildGoalView(goal, totalRecords) {
+  if (!goal) return null;
+  const total = totalRecords || 0;
+  const remaining = Math.max(0, goal.target - total);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDay = new Date(goal.date + 'T00:00:00');
+  const daysLeft = Math.round((targetDay - today) / 86400000);
+  const pct = Math.min(100, Math.round(total * 100 / Math.max(1, goal.target)));
+  let status;
+  if (remaining === 0) {
+    status = '已达成，去设下一个目标吧';
+  } else if (daysLeft < 0) {
+    status = '目标日已过，还差 ' + remaining + ' 条 — 调整日期继续，或换个小一点的目标';
+  } else if (daysLeft === 0) {
+    status = '就是今天：还差 ' + remaining + ' 条';
+  } else {
+    status = '还剩 ' + daysLeft + ' 天 · 每天添 ' + Math.ceil(remaining / daysLeft) + ' 条就能到';
+  }
+  return { label: goal.label, date: goal.date, target: goal.target, total, remaining, daysLeft, pct, status };
 }
 
 // 成就徽章（8 枚）：判定只用 stats 与记录总数，点亮金环、未得灰暗并写明还差多少
@@ -97,6 +128,13 @@ Page({
     stats: null,
     statsView: null,
     badges: [],
+    goal: null,
+    goalView: null,
+    goalEditing: false,
+    goalForm: { label: '', date: '', target: '' },
+    cardMode: false,
+    cardIdx: 0,
+    posterPath: '',
     due: [],
     quizItems: null,
     quizNote: '',
@@ -108,6 +146,7 @@ Page({
       wx.reLaunch({ url: '/pages/login/login' });
       return;
     }
+    this.loadGoal();
     this.loadAll();
   },
 
@@ -130,9 +169,51 @@ Page({
         stats: s,
         statsView: buildStatsView(s),
         badges: buildBadges(s, s.totalRecords || 0),
+        goalView: buildGoalView(this.data.goal, s.totalRecords || 0),
       }),
       () => {} // 统计拿不到只是少个面板，不打扰主流程
     );
+  },
+
+  // —— 目标冲刺卡（T10）——
+  loadGoal() {
+    const goal = wx.getStorageSync('learnGoal') || null;
+    this.setData({ goal, goalView: buildGoalView(goal, (this.data.stats || {}).totalRecords || 0) });
+  },
+
+  openGoalEdit() {
+    const g = this.data.goal || { label: '', date: '', target: '' };
+    this.setData({ goalEditing: true, goalForm: { label: g.label || '', date: g.date || '', target: g.target ? String(g.target) : '' } });
+  },
+
+  closeGoalEdit() {
+    this.setData({ goalEditing: false });
+  },
+
+  onGoalLabel(e) { this.setData({ 'goalForm.label': e.detail.value }); },
+  onGoalDate(e) { this.setData({ 'goalForm.date': e.detail.value }); },
+  onGoalTarget(e) { this.setData({ 'goalForm.target': e.detail.value }); },
+
+  saveGoal() {
+    const f = this.data.goalForm;
+    const target = parseInt(f.target, 10);
+    if (!f.date) {
+      wx.showToast({ title: '先选个目标日期', icon: 'none' });
+      return;
+    }
+    if (!target || target <= 0) {
+      wx.showToast({ title: '目标条数要大于 0', icon: 'none' });
+      return;
+    }
+    const goal = { label: (f.label || '').trim() || '我的小目标', date: f.date, target };
+    wx.setStorageSync('learnGoal', goal);
+    this.setData({ goal, goalEditing: false, goalView: buildGoalView(goal, (this.data.stats || {}).totalRecords || 0) });
+    wx.showToast({ title: '目标已挂上星图', icon: 'none' });
+  },
+
+  clearGoal() {
+    wx.removeStorageSync('learnGoal');
+    this.setData({ goal: null, goalView: null, goalEditing: false });
   },
 
   // 记录搜索：在已加载列表内按内容过滤（与 kind 筛选叠加，口径见卡片内说明）
@@ -180,17 +261,140 @@ Page({
   },
 
   grade(e) {
-    const idx = e.currentTarget.dataset.idx;
+    this._grade(e.currentTarget.dataset.idx, e.currentTarget.dataset.result, null);
+  },
+
+  // 星牌模式：评完自动滑到下一张未评的牌，全评完收局并刷新星图
+  gradeCard(e) {
+    const idx = this.data.cardIdx;
     const result = e.currentTarget.dataset.result;
-    const item = this.data.quizItems[idx];
+    this._grade(idx, result, () => {
+      const items = (this.data.quizItems || []).map((it, i) =>
+        (i === idx ? Object.assign({}, it, { done: result }) : it));
+      const next = items.findIndex((it, i) => i > idx && !it.done);
+      const anyLeft = items.findIndex((it) => !it.done);
+      if (anyLeft < 0) {
+        this.setData({ cardMode: false });
+        wx.showToast({ title: '星牌抽完啦', icon: 'success' });
+        this.loadAll();
+      } else {
+        this.setData({ cardIdx: next >= 0 ? next : anyLeft });
+      }
+    });
+  },
+
+  _grade(idx, result, after) {
+    const item = (this.data.quizItems || [])[idx];
+    if (!item || item.done) return;
     api.logReview(item.recordId, result).then(
       () => {
         const key = 'quizItems[' + idx + '].done';
         this.setData({ [key]: result });
         this.loadDueOnly();
+        if (after) after();
       },
       (err) => wx.showToast({ title: err.message, icon: 'none', duration: 3000 })
     );
+  },
+
+  // —— 星牌抽查（T11）：同一批抽查题，一张一张翻牌 ——
+  enterCards() {
+    const items = this.data.quizItems || [];
+    const first = items.findIndex((it) => !it.done);
+    if (first < 0) {
+      wx.showToast({ title: '这一轮已经抽完了', icon: 'none' });
+      return;
+    }
+    this.setData({ cardMode: true, cardIdx: first });
+  },
+
+  exitCards() {
+    this.setData({ cardMode: false });
+  },
+
+  flipCard() {
+    this.toggleRef({ currentTarget: { dataset: { idx: this.data.cardIdx } } });
+  },
+
+  // —— 今日星图海报（T12）：canvas 现画，数字全部来自 stats ——
+  makePoster() {
+    const s = this.data.stats;
+    if (!s) {
+      wx.showToast({ title: '星图数据还没加载好', icon: 'none' });
+      return;
+    }
+    const ctx = wx.createCanvasContext('posterCanvas', this);
+    const W = 750, H = 1040;
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0A0F22');
+    bg.addColorStop(1, '#05070F');
+    ctx.setFillStyle(bg);
+    ctx.fillRect(0, 0, W, H);
+    let seed = 20261101;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    for (let i = 0; i < 90; i++) {
+      ctx.setFillStyle(rnd() > 0.85 ? 'rgba(255,197,49,0.85)' : 'rgba(255,255,255,0.5)');
+      ctx.beginPath();
+      ctx.arc(rnd() * W, rnd() * H, rnd() * 2.2 + 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.setFillStyle('#FFC531');
+    ctx.setFontSize(44);
+    ctx.setTextAlign('center');
+    ctx.fillText('深 空 巡 星', W / 2, 120);
+    ctx.setFillStyle('#F4F1E6');
+    ctx.setFontSize(30);
+    const now = new Date();
+    ctx.fillText(now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · 今日星图', W / 2, 178);
+    const rows = [
+      ['今日复习', String(s.reviewsToday || 0) + ' 次'],
+      ['连续学习', String(s.streakDays || 0) + ' 天'],
+      ['星瓶藏星', String(s.totalRecords || 0) + ' 颗'],
+      ['已经毕业', String(s.graduatedCount || 0) + ' 条'],
+    ];
+    rows.forEach((r, i) => {
+      const y = 320 + i * 128;
+      ctx.setFillStyle('rgba(255,255,255,0.06)');
+      ctx.fillRect(70, y - 74, W - 140, 104);
+      ctx.setTextAlign('left');
+      ctx.setFillStyle('#98A2B8');
+      ctx.setFontSize(30);
+      ctx.fillText(r[0], 110, y);
+      ctx.setTextAlign('right');
+      ctx.setFillStyle('#FFC531');
+      ctx.setFontSize(44);
+      ctx.fillText(r[1], W - 110, y);
+    });
+    ctx.setTextAlign('center');
+    ctx.setFillStyle('#98A2B8');
+    ctx.setFontSize(26);
+    ctx.fillText('每天添一颗星，瓶子总会满', W / 2, H - 90);
+    ctx.setFillStyle('#5B6B8C');
+    ctx.setFontSize(22);
+    ctx.fillText('全家管家 · 学习星图', W / 2, H - 48);
+    ctx.draw(false, () => {
+      setTimeout(() => {
+        wx.canvasToTempFilePath({
+          canvasId: 'posterCanvas',
+          width: W, height: H, destWidth: W, destHeight: H,
+          success: (res) => this.setData({ posterPath: res.tempFilePath }),
+          fail: () => wx.showToast({ title: '海报生成失败', icon: 'none' }),
+        }, this);
+      }, 350);
+    });
+  },
+
+  savePoster() {
+    if (!this.data.posterPath) return;
+    wx.saveImageToPhotosAlbum({
+      filePath: this.data.posterPath,
+      success: () => wx.showToast({ title: '已存到相册', icon: 'success' }),
+      fail: () => wx.showToast({ title: '没存上：请在设置里允许保存到相册', icon: 'none', duration: 3000 }),
+    });
+  },
+
+  closePoster() {
+    this.setData({ posterPath: '' });
   },
 
   loadDueOnly() {
