@@ -7,10 +7,29 @@ function decorate(r) {
   return Object.assign({}, r, { kindLabel: KIND_LABEL[r.kind] || r.kind });
 }
 
+// 成就星瓶（纯展示）：每条学习记录化作一颗星，位置/大小/颜色按序号确定性生成，最多摆 36 颗
+function buildStars(count) {
+  const stars = [];
+  const total = Math.min(count || 0, 36);
+  for (let i = 0; i < total; i++) {
+    const row = Math.floor(i / 12);
+    const left = 8 + (i % 12) * 7.2 + ((i * 29) % 5);
+    const bottom = 9 + row * 17 + ((i * 17) % 6);
+    const size = 15 + ((i * 13) % 3) * 6;
+    const cls = i % 5 === 0 ? 'moon' : (i % 3 === 0 ? 'blue' : 'gold');
+    stars.push({
+      cls,
+      style: 'left:' + left + '%;bottom:' + bottom + '%;width:' + size + 'rpx;height:' + size + 'rpx;',
+    });
+  }
+  return stars;
+}
+
 Page({
   data: {
     filter: '',
     records: [],
+    stars: [],
     due: [],
     quizItems: null,
     quizNote: '',
@@ -28,7 +47,10 @@ Page({
   loadAll() {
     this.setData({ loading: true });
     api.listRecords(this.data.filter || undefined).then(
-      (rows) => this.setData({ records: (rows || []).map(decorate) }),
+      (rows) => {
+        const records = (rows || []).map(decorate);
+        this.setData({ records, stars: buildStars(records.length) });
+      },
       (err) => wx.showToast({ title: err.message, icon: 'none', duration: 3000 })
     );
     api.reviewToday().then(

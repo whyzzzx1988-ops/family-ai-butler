@@ -1,3 +1,70 @@
+/* 成就星瓶（v2 展示层）：金盖 + 玻璃瓶身 + 按记录数生成的星球点 */
+.jar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.jar-count {
+  color: #FFC531;
+  font-size: 42rpx;
+  font-weight: 700;
+}
+.jar-count-unit {
+  font-size: 26rpx;
+  font-weight: 400;
+  color: #98A2B8;
+}
+.jar {
+  margin-top: 18rpx;
+}
+.jar-lid {
+  width: 54%;
+  height: 30rpx;
+  margin: 0 auto;
+  background: linear-gradient(180deg, #FFD34D, #C78F00);
+  border-radius: 10rpx 10rpx 4rpx 4rpx;
+  box-shadow: 0 4rpx 10rpx rgba(255, 179, 0, 0.35);
+  position: relative;
+  z-index: 2;
+}
+.jar-body {
+  position: relative;
+  height: 300rpx;
+  margin-top: -4rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.28);
+  border-radius: 36rpx;
+  background:
+    radial-gradient(200rpx 120rpx at 78% 12%, rgba(64, 86, 178, 0.25) 0%, rgba(64, 86, 178, 0) 70%),
+    radial-gradient(160rpx 100rpx at 16% 84%, rgba(255, 184, 0, 0.08) 0%, rgba(255, 184, 0, 0) 70%),
+    linear-gradient(180deg, rgba(16, 21, 41, 0.9), rgba(7, 10, 22, 0.95));
+  box-shadow: inset 0 0 40rpx rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.star-dot {
+  position: absolute;
+  border-radius: 50%;
+}
+.star-dot.gold {
+  background: radial-gradient(circle at 35% 35%, #FFE082, #FFB300);
+  box-shadow: 0 0 12rpx rgba(255, 197, 49, 0.8);
+}
+.star-dot.blue {
+  background: radial-gradient(circle at 35% 35%, #B9D2FF, #4A6FA5);
+  box-shadow: 0 0 10rpx rgba(120, 160, 255, 0.7);
+}
+.star-dot.moon {
+  background: radial-gradient(circle at 35% 35%, #E8E8EC, #8E8E99);
+  box-shadow: 0 0 8rpx rgba(220, 220, 230, 0.55);
+}
+.jar-empty {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 128rpx;
+  text-align: center;
+  color: #98A2B8;
+  font-size: 26rpx;
+}
 .rowline {
   display: flex;
   align-items: center;

@@ -1,4 +1,13 @@
 <view class="container">
+  <view class="orbit-hero">
+    <view class="orbit-ring">
+      <view class="orbit-core"></view>
+      <view class="orbit-planet"></view>
+      <view class="orbit-sat"></view>
+    </view>
+    <view class="orbit-caption">深 空 巡 星 · 为 全 家 值 守</view>
+  </view>
+
   <view class="title">{{date}} 全家简报</view>
 
   <view wx:if="{{loading}}" class="muted">加载中…</view>

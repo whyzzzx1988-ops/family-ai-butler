@@ -1,5 +1,20 @@
 <view class="container">
   <view class="card">
+    <view class="jar-head">
+      <text class="title" style="margin-bottom: 0;">我的星瓶</text>
+      <text class="jar-count">{{records.length}}<text class="jar-count-unit"> 颗星</text></text>
+    </view>
+    <view class="muted">每条学习记录，化作一颗星收进瓶里</view>
+    <view class="jar">
+      <view class="jar-lid"></view>
+      <view class="jar-body">
+        <view wx:for="{{stars}}" wx:key="index" class="star-dot {{item.cls}}" style="{{item.style}}"></view>
+        <view wx:if="{{!stars.length}}" class="jar-empty">瓶子还空着，去添第一条记录吧</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
     <view class="title">今日待复习（{{due.length}}）</view>
     <view wx:if="{{!due.length}}" class="muted">今天没有到期要复习的，去玩吧。</view>
     <view wx:for="{{due}}" wx:key="id" class="rowline">
