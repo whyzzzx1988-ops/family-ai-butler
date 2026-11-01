@@ -9,6 +9,18 @@
   margin-bottom: 16rpx;
   color: #F4F1E6;
 }
+.collect-note {
+  color: #FFC531;
+  font-size: 25rpx;
+  letter-spacing: 1rpx;
+  margin-bottom: 10rpx;
+  animation: collect-glow 1.4s ease;
+}
+@keyframes collect-glow {
+  0% { opacity: 0; text-shadow: 0 0 0 rgba(255, 197, 49, 0); }
+  40% { opacity: 1; text-shadow: 0 0 18rpx rgba(255, 197, 49, 0.95); }
+  100% { opacity: 1; text-shadow: 0 0 6rpx rgba(255, 197, 49, 0.4); }
+}
 .btn-recording {
   background: linear-gradient(135deg, #FF7A59, #E5484D);
   color: #ffffff;

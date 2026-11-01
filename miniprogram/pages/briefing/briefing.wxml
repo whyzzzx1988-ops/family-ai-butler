@@ -18,6 +18,9 @@
       <button class="btn-primary speech-btn" loading="{{speechState === 'loading'}}" bindtap="toggleSpeech">{{speechLabel}}</button>
       <button wx:if="{{speechState === 'playing' || speechState === 'paused' || speechState === 'loading'}}" class="btn-ghost speech-btn" bindtap="stopSpeech">停止</button>
     </view>
+    <view wx:if="{{speechDots.length}}" class="speech-dots">
+      <view wx:for="{{speechDots}}" wx:key="index" class="sdot {{item.cls}}"></view>
+    </view>
     <view wx:if="{{speechHint}}" class="muted" style="margin-top: 10rpx;">{{speechHint}}</view>
   </view>
 

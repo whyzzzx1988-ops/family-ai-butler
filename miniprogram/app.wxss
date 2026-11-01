@@ -29,6 +29,15 @@ page {
   padding: 28rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.45), inset 0 1rpx 0 rgba(255, 255, 255, 0.05);
+  animation: card-in 0.45s ease both;
+}
+.container > .card:nth-child(2) { animation-delay: 0.05s; }
+.container > .card:nth-child(3) { animation-delay: 0.1s; }
+.container > .card:nth-child(4) { animation-delay: 0.15s; }
+.container > .card:nth-child(5) { animation-delay: 0.2s; }
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
 }
 button {
   font-weight: 600;

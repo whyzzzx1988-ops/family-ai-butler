@@ -61,6 +61,27 @@ public class LearnController {
                 .stream().map(this::recordBody).toList());
     }
 
+    /** 学习星图统计（P1）：口径与 /records 列表一致（家庭 + 可选 memberId），数字全部现算自 learn_record/review_log。 */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> stats(@RequestParam(required = false) Long memberId) {
+        AccountService.MemberView me = currentUser.requireMember();
+        LearnService.LearnStats s = learnService.stats(me.familyId(), memberId);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("totalRecords", s.totalRecords());
+        body.put("byKind", s.byKind());
+        body.put("newCount", s.newCount());
+        body.put("reviewingCount", s.reviewingCount());
+        body.put("graduatedCount", s.graduatedCount());
+        body.put("dueCount", s.dueCount());
+        body.put("reviewsToday", s.reviewsToday());
+        body.put("reviewsLast7Days", s.reviewsLast7Days().stream()
+                .map(d -> Map.of("date", d.date(), "count", d.count())).toList());
+        body.put("reviews7Days", s.reviews7Days());
+        body.put("forgot7Days", s.forgot7Days());
+        body.put("streakDays", s.streakDays());
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/records/{id}")
     public ResponseEntity<Map<String, Object>> detail(@PathVariable long id) {
         AccountService.MemberView me = currentUser.requireMember();

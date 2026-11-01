@@ -43,6 +43,11 @@
 .star-dot {
   position: absolute;
   border-radius: 50%;
+  animation: star-float 5s ease-in-out infinite alternate;
+}
+@keyframes star-float {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8rpx); }
 }
 .star-dot.gold {
   background: radial-gradient(circle at 35% 35%, #FFE082, #FFB300);
@@ -51,10 +56,12 @@
 .star-dot.blue {
   background: radial-gradient(circle at 35% 35%, #B9D2FF, #4A6FA5);
   box-shadow: 0 0 10rpx rgba(120, 160, 255, 0.7);
+  animation-duration: 6.4s;
 }
 .star-dot.moon {
   background: radial-gradient(circle at 35% 35%, #E8E8EC, #8E8E99);
   box-shadow: 0 0 8rpx rgba(220, 220, 230, 0.55);
+  animation-duration: 7.6s;
 }
 .jar-empty {
   position: absolute;
@@ -118,4 +125,170 @@
   border-radius: 16rpx;
   padding: 12rpx;
   color: #E8DFC8;
+}
+.ref.masked {
+  text-align: center;
+  color: #98A2B8;
+  border-style: dashed;
+  letter-spacing: 2rpx;
+}
+.ref-hide {
+  color: #98A2B8;
+  font-size: 24rpx;
+}
+/* 抽查评分色块（后果与后端调档规则一一对应：mastered 进一段 / fuzzy 明天再来 / forgot 回第一段） */
+.grade-btn {
+  flex: 1;
+  font-size: 24rpx;
+  padding: 0 8rpx;
+  border-radius: 999rpx;
+}
+.grade-btn:active {
+  transform: scale(0.97);
+}
+.g-mastered {
+  background: rgba(46, 204, 113, 0.16);
+  color: #7CE3A8;
+  border: 1rpx solid rgba(46, 204, 113, 0.45);
+}
+.g-fuzzy {
+  background: rgba(255, 159, 67, 0.14);
+  color: #FFC38A;
+  border: 1rpx solid rgba(255, 159, 67, 0.45);
+}
+.g-forgot {
+  background: rgba(255, 107, 107, 0.13);
+  color: #FF9D9D;
+  border: 1rpx solid rgba(255, 107, 107, 0.42);
+}
+/* 学习星图面板 */
+.streak-chip {
+  background: rgba(255, 197, 49, 0.14);
+  color: #FFC531;
+  border: 1rpx solid rgba(255, 197, 49, 0.3);
+  border-radius: 999rpx;
+  padding: 4rpx 16rpx;
+  font-size: 24rpx;
+}
+.sb-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 14rpx;
+}
+.sb-label {
+  width: 96rpx;
+  color: #C7CEDD;
+  font-size: 26rpx;
+}
+.sb-track {
+  flex: 1;
+  height: 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.sb-fill {
+  height: 100%;
+  border-radius: 999rpx;
+}
+.sb-new {
+  background: linear-gradient(90deg, #7FB2FF, #4A6FA5);
+}
+.sb-mid {
+  background: linear-gradient(90deg, #FFD34D, #FFB300);
+}
+.sb-done {
+  background: linear-gradient(90deg, #7CE3A8, #2ECC71);
+}
+.sb-count {
+  width: 56rpx;
+  text-align: right;
+  font-weight: 600;
+}
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 10rpx;
+  height: 150rpx;
+  margin: 20rpx 0 12rpx;
+}
+.week-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+.week-count {
+  font-size: 22rpx;
+  color: #98A2B8;
+  height: 28rpx;
+}
+.week-bar {
+  width: 26rpx;
+  border-radius: 8rpx 8rpx 0 0;
+  background: linear-gradient(180deg, #FFD34D, rgba(255, 179, 0, 0.45));
+  min-height: 6rpx;
+}
+.week-label {
+  font-size: 22rpx;
+  color: #98A2B8;
+  margin-top: 6rpx;
+}
+.stats-hint {
+  margin-top: 12rpx;
+  color: #FFC531;
+  font-size: 27rpx;
+}
+/* 成就徽章 */
+.badge-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.badge {
+  width: 25%;
+  box-sizing: border-box;
+  padding: 12rpx 4rpx;
+  text-align: center;
+  opacity: 0.45;
+}
+.badge-star {
+  width: 84rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2rpx solid rgba(255, 255, 255, 0.18);
+  color: #98A2B8;
+  font-size: 36rpx;
+  background: rgba(255, 255, 255, 0.04);
+}
+.badge.lit {
+  opacity: 1;
+}
+.badge.lit .badge-star {
+  color: #221A00;
+  border-color: #FFC531;
+  background: radial-gradient(circle at 35% 35%, #FFE082, #FFB300);
+  box-shadow: 0 0 18rpx rgba(255, 197, 49, 0.55);
+}
+.badge-name {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+}
+.badge-note {
+  font-size: 21rpx;
+  color: #98A2B8;
+}
+/* 记录搜索 */
+.search-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 999rpx;
+  padding: 12rpx 24rpx;
+  margin-bottom: 14rpx;
+  color: #F4F1E6;
+  font-size: 27rpx;
 }

@@ -28,6 +28,7 @@ Page({
     speechState: 'idle', // idle / loading / playing / paused / ended / error
     speechLabel: '朗读简报',
     speechHint: '',
+    speechDots: [], // 朗读进度星点阵：done 已播 / now 当前段 / todo 未播；段数 >30 时不渲染点阵只留文字
   },
 
   onLoad() {
@@ -85,21 +86,30 @@ Page({
   },
 
   // —— 简报播报 ——
+  buildSpeechDots(total, index, allDone) {
+    if (!total || total > 30) return [];
+    const dots = [];
+    for (let i = 0; i < total; i++) {
+      dots.push({ cls: allDone || i < index ? 'done' : (i === index ? 'now' : 'todo') });
+    }
+    return dots;
+  },
+
   onSpeechState(info) {
     const seg = info.total > 0 ? '第 ' + (info.index + 1) + '/' + info.total + ' 段' : '';
     if (info.state === 'loading') {
-      this.setData({ speechState: 'loading', speechLabel: '正在准备…', speechHint: info.total > 0 ? '正在合成' + seg : '正在生成播报计划…' });
+      this.setData({ speechState: 'loading', speechLabel: '正在准备…', speechHint: info.total > 0 ? '正在合成' + seg : '正在生成播报计划…', speechDots: this.buildSpeechDots(info.total, info.index, false) });
     } else if (info.state === 'playing') {
-      this.setData({ speechState: 'playing', speechLabel: '暂停朗读', speechHint: '正在朗读' + seg });
+      this.setData({ speechState: 'playing', speechLabel: '暂停朗读', speechHint: '正在朗读' + seg, speechDots: this.buildSpeechDots(info.total, info.index, false) });
     } else if (info.state === 'paused') {
-      this.setData({ speechState: 'paused', speechLabel: '继续朗读', speechHint: '已暂停 · ' + seg });
+      this.setData({ speechState: 'paused', speechLabel: '继续朗读', speechHint: '已暂停 · ' + seg, speechDots: this.buildSpeechDots(info.total, info.index, false) });
     } else if (info.state === 'ended') {
-      this.setData({ speechState: 'ended', speechLabel: '重新朗读', speechHint: '朗读完毕' });
+      this.setData({ speechState: 'ended', speechLabel: '重新朗读', speechHint: '朗读完毕', speechDots: this.buildSpeechDots(info.total, info.index, true) });
     } else if (info.state === 'error') {
-      this.setData({ speechState: 'error', speechLabel: '重新朗读', speechHint: '' });
+      this.setData({ speechState: 'error', speechLabel: '重新朗读', speechHint: '', speechDots: [] });
       wx.showToast({ title: info.message || '播报失败', icon: 'none', duration: 3000 });
     } else {
-      this.setData({ speechState: 'idle', speechLabel: '朗读简报', speechHint: '' });
+      this.setData({ speechState: 'idle', speechLabel: '朗读简报', speechHint: '', speechDots: [] });
     }
   },
 

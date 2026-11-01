@@ -10,6 +10,7 @@
 
   <view wx:if="{{lastEvent}}" class="card">
     <view class="title">已收下 · {{lastEvent.label}}</view>
+    <view class="collect-note">★ 已收进星图</view>
     <view>{{lastEvent.text}}</view>
     <view wx:if="{{lastEvent.status}}" class="muted" style="margin-top: 8rpx;">{{lastEvent.status}}</view>
     <view class="row" style="margin-top: 16rpx;">

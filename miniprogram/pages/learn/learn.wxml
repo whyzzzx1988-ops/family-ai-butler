@@ -12,6 +12,40 @@
         <view wx:if="{{!stars.length}}" class="jar-empty">瓶子还空着，去添第一条记录吧</view>
       </view>
     </view>
+    <view wx:if="{{jarHint}}" class="muted" style="margin-top: 12rpx;">{{jarHint}}</view>
+  </view>
+
+  <view wx:if="{{stats}}" class="card">
+    <view class="jar-head">
+      <text class="title" style="margin-bottom: 0;">学习星图</text>
+      <text wx:if="{{stats.streakDays}}" class="streak-chip">连续 {{stats.streakDays}} 天</text>
+    </view>
+    <view class="sb-row" wx:for="{{statsView.stageBars}}" wx:key="label">
+      <text class="sb-label">{{item.label}}</text>
+      <view class="sb-track"><view class="sb-fill {{item.cls}}" style="width: {{item.pct}}%;"></view></view>
+      <text class="sb-count">{{item.count}}</text>
+    </view>
+    <view class="muted" style="margin-top: 10rpx;">单词 {{stats.byKind.word}} · 错题 {{stats.byKind.mistake}} · 笔记 {{stats.byKind.note}} · 今日到期 {{stats.dueCount}}</view>
+    <view class="week-bars">
+      <view class="week-col" wx:for="{{statsView.weekBars}}" wx:key="index">
+        <text class="week-count">{{item.count || ''}}</text>
+        <view class="week-bar" style="height: {{item.h}}rpx;"></view>
+        <text class="week-label">{{item.label}}</text>
+      </view>
+    </view>
+    <view class="muted">近 7 日复习 {{stats.reviews7Days}} 次 · 今日 {{stats.reviewsToday}} 次</view>
+    <view wx:if="{{statsView.hint}}" class="stats-hint">{{statsView.hint}}</view>
+  </view>
+
+  <view wx:if="{{badges.length}}" class="card">
+    <view class="title">成就星图</view>
+    <view class="badge-grid">
+      <view class="badge {{item.lit ? 'lit' : ''}}" wx:for="{{badges}}" wx:key="name" data-idx="{{index}}" bindtap="badgeTap">
+        <view class="badge-star">★</view>
+        <view class="badge-name">{{item.name}}</view>
+        <view class="badge-note">{{item.note}}</view>
+      </view>
+    </view>
   </view>
 
   <view class="card">
@@ -30,12 +64,12 @@
     <view wx:if="{{quizNote}}" class="muted" style="margin-bottom: 12rpx;">{{quizNote}}</view>
     <view wx:for="{{quizItems}}" wx:key="recordId" class="quiz">
       <view><text class="tag">{{item.kindLabel}}</text> {{item.question}}</view>
-      <view wx:if="{{item.showRef}}" class="ref">参考：{{item.reference}}</view>
+      <view wx:if="{{item.showRef}}" class="ref" data-idx="{{index}}" bindtap="toggleRef">参考：{{item.reference}}<text class="ref-hide">（点这里收起）</text></view>
+      <view wx:else class="ref masked" data-idx="{{index}}" bindtap="toggleRef">轻点揭开参考</view>
       <view wx:if="{{!item.done}}" class="row" style="margin-top: 10rpx;">
-        <button class="btn-ghost mini" data-idx="{{index}}" bindtap="toggleRef">看参考</button>
-        <button class="btn-ghost mini" data-idx="{{index}}" data-result="mastered" bindtap="grade">记住了</button>
-        <button class="btn-ghost mini" data-idx="{{index}}" data-result="fuzzy" bindtap="grade">模糊</button>
-        <button class="btn-ghost mini" data-idx="{{index}}" data-result="forgot" bindtap="grade">忘了</button>
+        <button class="grade-btn g-mastered" data-idx="{{index}}" data-result="mastered" bindtap="grade">记住了 · 进一段</button>
+        <button class="grade-btn g-fuzzy" data-idx="{{index}}" data-result="fuzzy" bindtap="grade">模糊 · 明天再来</button>
+        <button class="grade-btn g-forgot" data-idx="{{index}}" data-result="forgot" bindtap="grade">忘了 · 回第一段</button>
       </view>
       <view wx:else class="muted" style="margin-top: 10rpx;">已自评：{{item.done === 'mastered' ? '记住了' : (item.done === 'fuzzy' ? '模糊' : '忘了')}}，下次到期已顺延</view>
     </view>
@@ -49,8 +83,10 @@
       <button class="chip {{filter === 'mistake' ? 'on' : ''}}" data-kind="mistake" bindtap="setFilter">错题</button>
       <button class="chip {{filter === 'note' ? 'on' : ''}}" data-kind="note" bindtap="setFilter">笔记</button>
     </view>
+    <input class="search-input" placeholder="在已加载记录里搜…" value="{{query}}" bindinput="onQueryInput" />
     <view wx:if="{{!records.length}}" class="muted">还没有记录，去「说一句」里说一道错题或一个单词试试。</view>
-    <view wx:for="{{records}}" wx:key="id" class="rowline">
+    <view wx:elif="{{!shownRecords.length}}" class="muted">没有匹配「{{query}}」的记录。</view>
+    <view wx:for="{{shownRecords}}" wx:key="id" class="rowline">
       <text class="tag">{{item.kindLabel}}</text>
       <text class="flex">{{item.content}}</text>
     </view>

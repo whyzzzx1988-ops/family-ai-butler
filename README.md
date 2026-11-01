@@ -230,6 +230,9 @@ curl -X POST localhost:8080/api/learn/review/log -H "Authorization: T" -H "Conte
 # 6) 家长周报（第七周 N4）：生成 type=weekly（date 为截止日，统计其前 7 天）→ 「孩子本周学习」段应逐个孩子列出
 #    新增条数、复习次数与自评分布、当前待复习条数，与上面几步的操作对得上；只报事实不评价
 curl -X POST "localhost:8080/api/briefings/generate?date=下周一日期&type=weekly" -H "Authorization: T"
+# 7) 学习星图统计（P1）：totalRecords/byKind/newCount/reviewingCount/graduatedCount 与上面建的记录逐项对得上；
+#    reviewsToday 与第 4 步回记次数一致，reviewsLast7Days 末位（今天）同数；streakDays 今天有活动应 ≥1
+curl localhost:8080/api/learn/stats -H "Authorization: T"
 ```
 
 微信登录与订阅消息自检（第五周 A1/A3）。后端先配环境变量 `WECHAT_APPID` / `WECHAT_SECRET`（你自己的小程序，在公众平台「开发管理 → 开发设置」里看）再重启后端；小程序工程打开方式见 `miniprogram/README.md`。curl 只能验到「未配置/参数校验」层，真 code 只能从小程序里 wx.login 拿（一次性、5 分钟有效），完整链路在开发者工具里走登录页：

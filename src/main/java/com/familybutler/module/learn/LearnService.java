@@ -19,10 +19,13 @@ import org.springframework.stereotype.Service;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +106,16 @@ public class LearnService {
     }
 
     public record ReviewLogResult(LearnView record, long logId) {
+    }
+
+    /** 学习星图统计（P1）：全部由 learn_record / review_log 现有数据现算，不新增表。 */
+    public record DayCount(String date, long count) {
+    }
+
+    public record LearnStats(long totalRecords, Map<String, Long> byKind,
+                             long newCount, long reviewingCount, long graduatedCount,
+                             long dueCount, long reviewsToday, List<DayCount> reviewsLast7Days,
+                             long reviews7Days, long forgot7Days, long streakDays) {
     }
 
     private static final String COLUMNS =
@@ -303,6 +316,99 @@ public class LearnService {
             note = "有 " + fallbackCount + " 条模型未出题，已用规则兜底题补齐";
         }
         return new QuizResult(items, llmLogId, note);
+    }
+
+    /**
+     * 学习星图统计（P1）：口径与列表/复习队列完全一致——范围同 listByFamily（家庭 + 可选成员），
+     * 到期数直接复用 reviewToday 的判定（stage<3 且 next 已到/为空）。阶段三档：stage 0 = 新学、
+     * 1–2 = 复习中、≥3 = 已毕业。连续天数 = 有新建记录或有复习日志的自然日（Asia/Shanghai）连续段，
+     * 允许以昨天结尾（今天还没学不算断）。日期分桶在 Java 侧做，PG/H2 口径一致。
+     */
+    public LearnStats stats(long familyId, Long memberId) {
+        LocalDate today = LocalDate.now(ZONE);
+        List<Object> args = new ArrayList<>(List.of(familyId));
+        String memberClause = "";
+        if (memberId != null) {
+            memberClause = " and member_id = ?";
+            args.add(memberId);
+        }
+
+        Map<String, Long> byKind = new LinkedHashMap<>();
+        byKind.put("word", 0L);
+        byKind.put("mistake", 0L);
+        byKind.put("note", 0L);
+        long[] stageBuckets = new long[3]; // 0 新学 / 1 复习中 / 2 已毕业
+        Set<LocalDate> activeDays = new HashSet<>();
+        List<LocalDate> recordDays = jdbc.query(
+                "select kind, review_stage, cast(created_at as date) as d from learn_record where family_id = ?"
+                        + memberClause,
+                (rs, i) -> {
+                    String kind = rs.getString("kind");
+                    if (byKind.containsKey(kind)) {
+                        byKind.merge(kind, 1L, Long::sum);
+                    }
+                    int stage = rs.getInt("review_stage");
+                    stageBuckets[stage >= 3 ? 2 : (stage == 0 ? 0 : 1)]++;
+                    return rs.getObject("d", LocalDate.class);
+                }, args.toArray());
+        recordDays.stream().filter(d -> d != null).forEach(activeDays::add);
+        long totalRecords = byKind.values().stream().mapToLong(Long::longValue).sum();
+
+        List<LocalDate> logDays = new ArrayList<>();
+        long[] logAgg = new long[3]; // 0 今日次数 / 1 近7日forgot / 2 近7日总数（由分桶求和后填）
+        LocalDate weekStart = today.minusDays(6);
+        jdbc.query("select result, cast(created_at as date) as d from review_log where family_id = ?"
+                        + memberClause,
+                (rs, i) -> {
+                    LocalDate d = rs.getObject("d", LocalDate.class);
+                    if (d != null) {
+                        logDays.add(d);
+                        if (d.equals(today)) {
+                            logAgg[0]++;
+                        }
+                        if (!d.isBefore(weekStart) && !d.isAfter(today) && "forgot".equals(rs.getString("result"))) {
+                            logAgg[1]++;
+                        }
+                    }
+                    return null;
+                }, args.toArray());
+        activeDays.addAll(logDays);
+
+        List<DayCount> last7 = countByDay(logDays, today, 7);
+        long reviews7 = last7.stream().mapToLong(DayCount::count).sum();
+        long due = reviewToday(familyId, memberId).size();
+        return new LearnStats(totalRecords, byKind, stageBuckets[0], stageBuckets[1], stageBuckets[2],
+                due, logAgg[0], last7, reviews7, logAgg[1], computeStreak(activeDays, today));
+    }
+
+    /** 连续活跃天数：以今天（或昨天，今天还没动不算断）为锚往前数连续自然日。 */
+    static int computeStreak(Set<LocalDate> activeDays, LocalDate today) {
+        LocalDate cursor = activeDays.contains(today) ? today : today.minusDays(1);
+        if (!activeDays.contains(cursor)) {
+            return 0;
+        }
+        int streak = 0;
+        while (activeDays.contains(cursor)) {
+            streak++;
+            cursor = cursor.minusDays(1);
+        }
+        return streak;
+    }
+
+    /** 近 windowDays 天（含今天）逐日计数，旧→新，缺日补 0。 */
+    static List<DayCount> countByDay(List<LocalDate> days, LocalDate today, int windowDays) {
+        Map<LocalDate, Long> counts = new HashMap<>();
+        for (LocalDate d : days) {
+            if (d != null) {
+                counts.merge(d, 1L, Long::sum);
+            }
+        }
+        List<DayCount> result = new ArrayList<>();
+        for (int i = windowDays - 1; i >= 0; i--) {
+            LocalDate d = today.minusDays(i);
+            result.add(new DayCount(d.toString(), counts.getOrDefault(d, 0L)));
+        }
+        return result;
     }
 
     /**
