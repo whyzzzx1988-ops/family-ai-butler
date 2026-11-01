@@ -35,7 +35,8 @@ IDEA 里看数据：新建 **H2** 数据源（不要建 PostgreSQL 的，本地�
 # 文本进箱（带 D3 的 token T）→ 201，返回事件（含 id / status=new）
 curl -X POST localhost:8080/api/inbox/text -H "Authorization: T" -H "Content-Type: application/json" \
   -d '{"text":"明天下午三点提醒我开会"}'
-# 语音进箱 → 201，响应 text 字段即转写结果（短语音数秒内返回）
+# 语音进箱 → 转写成功 201（响应 text 字段即转写结果，短语音数秒内返回）；ASR 未配置或转写失败 → 202
+# （202 = 已受理待处理：事件照常落盘，status=asr_unconfigured / asr_failed，音频已保存可配置后重跑转写）
 curl -X POST localhost:8080/api/inbox/voice -H "Authorization: T" -F "file=@test.wav"
 # 列表（Web 端可见的形态）→ 本家庭最近事件，新到旧
 curl localhost:8080/api/inbox -H "Authorization: T"
