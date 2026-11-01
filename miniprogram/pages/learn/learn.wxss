@@ -3,13 +3,14 @@
   align-items: center;
   gap: 12rpx;
   padding: 10rpx 0;
-  border-bottom: 1rpx solid #f0efec;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.07);
 }
 .tag {
-  background: #fff1e6;
-  color: #e8590c;
-  border-radius: 8rpx;
-  padding: 2rpx 12rpx;
+  background: rgba(255, 197, 49, 0.14);
+  color: #FFC531;
+  border: 1rpx solid rgba(255, 197, 49, 0.25);
+  border-radius: 999rpx;
+  padding: 2rpx 14rpx;
   font-size: 24rpx;
   white-space: nowrap;
 }
@@ -25,11 +26,15 @@
   font-size: 26rpx;
   padding: 0 20rpx;
   border-radius: 999rpx;
-  background: #f2f1ed;
+  background: rgba(255, 255, 255, 0.05);
+  color: #C7CEDD;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
 }
 .chip.on {
-  background: #e8590c;
-  color: #ffffff;
+  background: linear-gradient(135deg, #FFD34D, #FFB300);
+  color: #221A00;
+  border-color: transparent;
+  font-weight: 600;
 }
 .mini {
   font-size: 26rpx;
@@ -37,12 +42,13 @@
 }
 .quiz {
   padding: 14rpx 0;
-  border-bottom: 1rpx solid #f0efec;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.07);
 }
 .ref {
   margin-top: 8rpx;
-  background: #f8f7f4;
-  border-radius: 8rpx;
+  background: rgba(255, 197, 49, 0.08);
+  border: 1rpx solid rgba(255, 197, 49, 0.12);
+  border-radius: 16rpx;
   padding: 12rpx;
-  color: #55524d;
+  color: #E8DFC8;
 }

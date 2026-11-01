@@ -1,36 +1,69 @@
+/* 全家管家 · 「深空巡星」主题（v1，纯样式层）
+   令牌：深空底 #05070F / 熔金 #FFC531（渐变 #FFD34D→#FFB300）/ 米白字 #F4F1E6 / 灰蓝次级 #98A2B8
+   设计说明见 docs：小程序宇宙主题设计规划-v1.md；功能与结构不在本文件范围。 */
 page {
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-  color: #22201d;
+  color: #F4F1E6;
   font-size: 30rpx;
+  background-color: #05070F;
+  background-image:
+    radial-gradient(2rpx 2rpx at 60rpx 90rpx, rgba(255, 255, 255, 0.55) 50%, transparent 52%),
+    radial-gradient(2rpx 2rpx at 180rpx 300rpx, rgba(255, 255, 255, 0.35) 50%, transparent 52%),
+    radial-gradient(3rpx 3rpx at 640rpx 180rpx, rgba(255, 214, 96, 0.65) 50%, transparent 52%),
+    radial-gradient(2rpx 2rpx at 520rpx 460rpx, rgba(255, 255, 255, 0.3) 50%, transparent 52%),
+    radial-gradient(2rpx 2rpx at 90rpx 620rpx, rgba(255, 255, 255, 0.4) 50%, transparent 52%),
+    radial-gradient(2rpx 2rpx at 700rpx 700rpx, rgba(255, 255, 255, 0.35) 50%, transparent 52%),
+    radial-gradient(560rpx 380rpx at 88% -4%, rgba(255, 184, 0, 0.13) 0%, rgba(255, 184, 0, 0) 62%),
+    radial-gradient(760rpx 560rpx at -12% 26%, rgba(64, 86, 178, 0.16) 0%, rgba(64, 86, 178, 0) 62%),
+    linear-gradient(180deg, #070B18 0%, #05070F 100%);
+  background-repeat: no-repeat;
 }
 .container {
   padding: 28rpx;
   box-sizing: border-box;
 }
 .card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  background: linear-gradient(160deg, rgba(30, 38, 66, 0.92), rgba(13, 17, 33, 0.96));
+  border: 1rpx solid rgba(255, 197, 49, 0.16);
+  border-radius: 28rpx;
+  padding: 28rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.45), inset 0 1rpx 0 rgba(255, 255, 255, 0.05);
+}
+button {
+  font-weight: 600;
+}
+button::after {
+  border: none;
 }
 .btn-primary {
-  background: #e8590c;
-  color: #ffffff;
-  border-radius: 12rpx;
+  background: linear-gradient(135deg, #FFD34D, #FFB300);
+  color: #221A00;
+  border-radius: 999rpx;
+  box-shadow: 0 10rpx 24rpx rgba(255, 179, 0, 0.28);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+  opacity: 0.92;
 }
 .btn-ghost {
-  background: #ffffff;
-  color: #e8590c;
-  border: 1rpx solid #e8590c;
-  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.04);
+  color: #FFC531;
+  border: 1rpx solid rgba(255, 197, 49, 0.45);
+  border-radius: 999rpx;
+}
+.btn-ghost:active {
+  transform: scale(0.98);
+  background: rgba(255, 197, 49, 0.1);
 }
 .muted {
-  color: #8a8a8a;
+  color: #98A2B8;
   font-size: 26rpx;
 }
 .title {
-  font-size: 34rpx;
+  color: #FFF8E1;
+  font-size: 36rpx;
   font-weight: 600;
+  letter-spacing: 1rpx;
   margin-bottom: 12rpx;
 }

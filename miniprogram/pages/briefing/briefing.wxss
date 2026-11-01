@@ -1,13 +1,17 @@
 .line {
   line-height: 1.7;
   word-break: break-all;
+  color: #E9E6DA;
 }
 .h1 {
-  font-size: 38rpx;
+  color: #FFC531;
+  font-size: 40rpx;
   font-weight: 700;
+  letter-spacing: 1rpx;
   margin: 8rpx 0;
 }
 .h {
+  color: #FFE082;
   font-size: 32rpx;
   font-weight: 600;
   margin: 16rpx 0 6rpx;
